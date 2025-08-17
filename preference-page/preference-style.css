@@ -1,0 +1,198 @@
+body {
+  margin: 0;
+  background: #fdfbf9;
+  color: #362e2e;
+}
+
+.container {
+  max-width: 900px;
+  min-height: 100svh;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 48px 20px;
+  display: grid;
+  align-content: center;
+  gap: 0;
+}
+
+.progress-icons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid #dddddd;
+  border-radius: 0;
+  padding: 12px 64px;
+  background: #ffffff;
+  margin-bottom: 28px;
+}
+
+.progress-item {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.progress-item img {
+  width: 26px;
+  height: 26px;
+  display: block;
+  transition: none;
+}
+
+.progress-item.pi-people img {
+  width: 34px;
+  height: 27px;
+}
+
+.progress-item.is-done img {
+  width: 26px;
+  height: 26px;
+}
+
+.progress-item.active img {
+  filter: invert(28%) sepia(50%) saturate(1642%) hue-rotate(330deg)
+    brightness(92%) contrast(97%);
+}
+
+.progress-divider {
+  flex: 0 0 152px;
+  height: 2px;
+  background-color: #6b4f4f;
+}
+.progress-divider.done {
+  background-color: #d64550;
+}
+
+.question-step {
+  font-weight: bold;
+  color: #ff914d;
+  margin: 0 0 28px 0;
+  padding-left: 24px;
+}
+
+.question-box {
+  border: 1px solid #dddddd;
+  border-radius: 0;
+  padding: 24px 24px 0px 24px;
+  background: #ffffff;
+  margin: 0;
+}
+
+.question-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+#question-title {
+  margin: 0;
+}
+
+.question-sub {
+  color: #777777;
+  margin: 8px 0 20px;
+}
+
+#question-form {
+  margin-left: -24px;
+  margin-right: -24px;
+}
+
+#question-form label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 24px;
+  border-top: 1px solid #dddddd;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  padding-left: 30px;
+}
+#question-form label:first-of-type {
+  border-top: 1px solid #dddddd;
+}
+#question-form label.selected {
+  background: #fff6f2;
+}
+
+#question-form input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.next-btn {
+  padding: 12px 64px;
+  background: #ff914d;
+  border: none;
+  border-radius: 24px;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+  margin: 0;
+}
+.next-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.below-actions {
+  display: flex;
+  justify-content: flex-start;
+  margin: 0;
+}
+.back-btn {
+  padding: 12px 37px;
+  background: #ffffff;
+  border: 2px solid #ff914d;
+  color: #ff914d;
+  border-radius: 28px;
+  font-weight: 700;
+  cursor: pointer;
+  visibility: hidden;
+}
+
+.random-course {
+  text-align: center;
+  color: #777777;
+  margin: 0;
+}
+.random-course a {
+  color: #ff914d;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+/* 스텝별 하단 마진 */
+body.step-1 .question-box {
+  margin-bottom: 10px;
+} /* ← step1 박스 하단 마진 */
+body.step-1 .below-actions {
+  margin-top: 50px;
+} /* Back 줄 위 간격 */
+body.step-1 .random-course {
+  margin-top: -80px;
+} /* ← step1 문구 위 간격 */
+
+/* step2~4*/
+body.step-others .question-box {
+  margin-bottom: 100px;
+} /* ← step2~4 박스 하단 마진 */
+body.step-others .below-actions {
+  margin-top: 0px;
+  transform: translateY(-75px);
+  position: relative;
+  z-index: 1;
+} /* Back <-> 박스 사이 간격 */
+body.step-others .random-course {
+  margin-top: -120px;
+} /* 문구 위 간격 */
+
+body {
+  overflow-y: hidden;
+}
