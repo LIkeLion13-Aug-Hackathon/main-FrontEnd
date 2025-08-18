@@ -5,9 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>preference_page</title>
     <link rel="stylesheet" href="preference-style.css" />
+    <link rel="stylesheet" href="../header/Header.css" />
   </head>
-  <body></body>
-
+  <body>
+    <header id="header"></header>
     <main class="container">
       <section class="progress-icons">
         <div class="progress-item">
@@ -88,7 +89,10 @@
         설문 없이 랜덤 코스를 받고 싶으신가요? <a href="#">랜덤 코스 보기 →</a>
       </p>
     </main>
-
+    <script type="module">
+      import { loadHeader } from "../header/Header.js";
+      loadHeader();
+    </script>
     <script src="preference-script.js"></script>
   </body>
 </html>

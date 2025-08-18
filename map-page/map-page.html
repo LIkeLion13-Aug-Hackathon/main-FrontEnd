@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>네이버 지도 테스트</title>
+    <link rel="stylesheet" href="../header/Header.css" />
+    <link rel="stylesheet" href="../map-page/map-page.css" />
+    <script
+      type="text/javascript"
+      src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId="
+    ></script>
+  </head>
+  <body>
+    <header id="header"></header>
+    <div class="course-bar" id="courseBar"></div>
+    <div id="map"></div>
+
+    <div id="detailPanel">
+      <div class="detail-content">
+        <!-- 왼쪽: 가게 정보 -->
+        <div class="wrap-detailPanel">
+          <h2 id="storeName"></h2>
+          <p>
+            <img
+              class="store-icon"
+              src="../map-page/map_asset/icon-location.png"
+            />
+            <span id="storeAddr"></span>
+          </p>
+          <p>
+            <img class="store-icon" src="../map-page/map_asset/icon-time.png" />
+            <span id="storeTime"></span>
+          </p>
+          <p>
+            <img
+              class="store-icon"
+              src="../map-page/map_asset/icon-phone.png"
+            />
+            <span id="storePhone"></span>
+          </p>
+        </div>
+        <!-- 가운데 세로선 -->
+        <div class="vertical-line"></div>
+        <!-- 오른쪽: 메뉴 이미지 -->
+        <div id="storeImages" class="image-container"></div>
+        <button id="closePanel" class="close-panel">×</button>
+      </div>
+    </div>
+
+    <script type="module">
+      import { loadHeader } from "../header/Header.js";
+      loadHeader();
+    </script>
+    <script src="../map-page/map-page.js"></script>
+  </body>
+</html>

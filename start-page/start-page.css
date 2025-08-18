@@ -1,0 +1,227 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css");
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  font-family: "Pretendard Variable", sans-serif;
+  background-color: #fdfdfc;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: hidden; /* 세로 여백 제거 */
+}
+
+/* ===============================
+   기본 레이아웃
+================================ */
+.start-main {
+  position: relative;
+  height: 100vh; /* 전체 화면 높이 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  overflow: hidden;
+  padding: 60px 20px 0 20px; /* 아래쪽 패딩 제거 */
+  background-color: #fdfdfc;
+  gap: 20px; /* 텍스트/이미지 간격 */
+}
+
+/* 왼쪽 위 도로 */
+.line1 {
+  position: absolute;
+  z-index: 1;
+  width: 60%;
+  max-width: 800px;
+  top: -30px;
+  left: 0;
+  transform: translateY(-8%);
+}
+
+/* 오른쪽 아래 도로 */
+.line2 {
+  position: absolute;
+  pointer-events: none;
+  width: 60%;
+  max-width: 600px;
+  bottom: 50px; /* 아래에 고정 */
+  right: 0; /* 오른쪽에 고정 */
+  margin: 0;
+}
+
+/* 콘텐츠 */
+.start-content {
+  z-index: 2;
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 10px 20px 10px 20px;
+  margin-top: -110px;
+}
+
+/* 텍스트 */
+.start-text h1 {
+  color: #362e2e;
+  font-size: clamp(1.2rem, 4vw, 2rem);
+  font-weight: 400;
+  margin-bottom: 24px;
+  text-align: center;
+  display: block;
+}
+.highlight-box {
+  display: inline-flex; /* inline-flex로 바꿔서 중앙 정렬 유지 */
+  align-items: center;
+  justify-content: center;
+  width: 6.4375rem;
+  height: 2.625rem;
+  padding: 0.125rem 0.375rem 0.125rem 0.5rem;
+  border-radius: 10px;
+  border: 2px solid #ff914d;
+  color: #362e2e;
+  font-size: 1.875rem;
+  font-weight: 600;
+  gap: 7px;
+  margin: -7px 6px 0 8px;
+  vertical-align: middle; /* 텍스트와 높이 맞춤 */
+}
+.highlight-box:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 20px rgba(62, 62, 62, 0.3);
+}
+.text1 {
+  margin-bottom: 10px;
+  color: #362e2e;
+  font-size: 22px;
+  font-style: normal;
+  font-weight: 400;
+}
+.text2 {
+  margin-bottom: 24px;
+  color: #362e2e;
+  font-size: 22px;
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 1px;
+}
+.bold {
+  font-weight: 600; /* 원하는 굵기 */
+}
+.spoon-icon {
+  width: 22px;
+  height: 30px;
+  margin-top: 3px;
+}
+
+.market-list {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 64px;
+  margin-bottom: 37px;
+}
+.market-img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.market-img:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 60px rgba(20, 19, 19, 0.3);
+  filter: brightness(1.5);
+}
+.text3 {
+  color: #969696;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+.start-btns {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+/* 버튼 반응형 수정 */
+.start-btn1,
+.start-btn2 {
+  width: 17rem;
+  height: 3rem;
+  font-size: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: 0.36px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  text-align: center;
+}
+.start-btn1 {
+  background-color: #ff914d;
+  color: #fff;
+}
+.start-btn2 {
+  color: #ff914d;
+  border: 2px solid #ff914d;
+  background-color: #fff;
+  border: 2px solid #ff914d;
+}
+.start-btn1:hover {
+  background: #c84c35;
+}
+.start-btn2:hover {
+  background: #c84c35;
+}
+
+/* ===============================
+   반응형
+================================ */
+@media (max-width: 800px) {
+  .line1,
+  .line2 {
+    width: 55%;
+    max-width: 300px;
+  }
+
+  .start-text h1 {
+    font-size: 22px;
+  }
+
+  .text1 .text2 .bold {
+    font-size: 16px;
+  }
+
+  .market-list {
+    gap: 16px;
+  }
+
+  .text3 {
+    color: #969696;
+    font-size: 18px;
+    font-weight: 400;
+  }
+  .start-btn1,
+  .start-btn2 {
+    width: 200px;
+    height: 36px;
+    font-size: 13px;
+  }
+}

@@ -4,8 +4,10 @@
     <meta charset="UTF-8" />
     <title>course-page</title>
     <link rel="stylesheet" href="course-style.css" />
+    <link rel="stylesheet" href="../header/Header.css" />
   </head>
   <body>
+    <header id="header"></header>
     <main class="container">
       <h1 class="title">
         AI가 엄선한 <span class="accent">통인시장</span> 코스 3가지!
@@ -248,7 +250,10 @@
         </div>
       </div>
     </main>
-
+    <script type="module">
+      import { loadHeader } from "../header/Header.js";
+      loadHeader();
+    </script>
     <script src="course-script.js"></script>
   </body>
 </html>
