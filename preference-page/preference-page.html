@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>preference_page</title>
+    <link rel="stylesheet" href="preference-style.css" />
+  </head>
+  <body></body>
+
+    <main class="container">
+      <section class="progress-icons">
+        <div class="progress-item">
+          <img src="icon/market_icon.png" alt="시장" />
+        </div>
+        <div class="progress-divider"></div>
+        <!-- people 아이콘만 따로 크기 조절 -->
+        <div class="progress-item pi-people">
+          <img src="icon/people_icon.png" alt="동행" />
+        </div>
+        <div class="progress-divider"></div>
+        <div class="progress-item">
+          <img src="icon/spicy_icon.png" alt="맵기" />
+        </div>
+        <div class="progress-divider"></div>
+        <div class="progress-item">
+          <img src="icon/stom_icon.png" alt="배고픔" />
+        </div>
+      </section>
+
+      <p class="question-step">Question <span id="step">1</span> of 4</p>
+
+      <section class="question-box">
+        <div class="question-head">
+          <h2 id="question-title">
+            AI 먹킷 코스를 볼 전통시장을 선택해 주세요!
+          </h2>
+          <button type="button" class="next-btn" id="next-btn" disabled>
+            Next Question →
+          </button>
+        </div>
+
+        <p class="question-sub">한 가지를 선택해 주세요.</p>
+
+        <form id="question-form">
+          <label>
+            <input type="radio" name="market" value="통인시장" />
+            <img
+              src="icon/button-default.png"
+              data-default="icon/button-default.png"
+              data-selected="icon/button-selected.png"
+              class="option-icon"
+              alt=""
+            />
+            <span>통인시장</span>
+          </label>
+          <label>
+            <input type="radio" name="market" value="남대문시장" />
+            <img
+              src="icon/button-default.png"
+              data-default="icon/button-default.png"
+              data-selected="icon/button-selected.png"
+              class="option-icon"
+              alt=""
+            />
+            <span>남대문시장</span>
+          </label>
+          <label>
+            <input type="radio" name="market" value="망원시장" />
+            <img
+              src="icon/button-default.png"
+              data-default="icon/button-default.png"
+              data-selected="icon/button-selected.png"
+              class="option-icon"
+              alt=""
+            />
+            <span>망원시장</span>
+          </label>
+        </form>
+      </section>
+
+      <!-- Back 버튼 -> step 2~4에서만 보이게 JS 설정 -->
+      <div class="below-actions">
+        <button type="button" class="back-btn" id="back-btn">Back</button>
+      </div>
+
+      <p class="random-course">
+        설문 없이 랜덤 코스를 받고 싶으신가요? <a href="#">랜덤 코스 보기 →</a>
+      </p>
+    </main>
+
+    <script src="preference-script.js"></script>
+  </body>
+</html>
