@@ -21,7 +21,7 @@ export function loadHeader(path = "../header/Header.html") {
 
         Array.from(button1).forEach((btn) => {
           btn.addEventListener("click", () => {
-            window.location.href = "../course-page/course-page.html";
+            window.location.href = "../preference-page/preference-page.html";
           });
         });
 

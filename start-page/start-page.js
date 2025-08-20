@@ -3,7 +3,7 @@ const start_button2 = document.getElementsByClassName("start-btn2");
 
 Array.from(start_button1).forEach((btn) => {
   btn.addEventListener("click", () => {
-    window.location.href = "../course-page/course-page.html";
+    window.location.href = "../preference-page/preference-page.html";
   });
 });
 

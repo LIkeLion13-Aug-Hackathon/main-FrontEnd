@@ -117,7 +117,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 진행바: 현재 스텝=즉시 틴트, 이전 스텝=체크(아이콘 교체)
+  // 진행바
   function updateProgressVisual() {
     progressItems.forEach((item, idx) => {
       const img = progressImgs[idx];
@@ -127,12 +127,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if (img.getAttribute("src") !== CHECK_ICON_SRC) {
           img.setAttribute("src", CHECK_ICON_SRC);
         }
-        item.classList.add("is-done"); // 26x26 강제
+        item.classList.add("is-done");
       } else if (idx === current) {
         if (img.getAttribute("src") !== originalSrcs[idx]) {
           img.setAttribute("src", originalSrcs[idx]);
         }
-        item.classList.add("active"); // 필터로 #d64550 톤
+        item.classList.add("active");
       } else {
         if (img.getAttribute("src") !== originalSrcs[idx]) {
           img.setAttribute("src", originalSrcs[idx]);
@@ -140,7 +140,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // 디바이더: 색만 클래스 토글로 제어
     progressDividers.forEach((div, idx) => {
       div.classList.toggle("done", idx < current);
     });
@@ -155,7 +154,7 @@ document.addEventListener("DOMContentLoaded", () => {
     updateLineOptions();
   });
 
-  // Next: 마지막 스텝이면 다음 페이지로 이동(알림 X)
+  // Next 버튼
   nextBtn.addEventListener("click", () => {
     const s = steps[current];
     const checked = form.querySelector(`input[name="${s.name}"]:checked`);
@@ -166,9 +165,10 @@ document.addEventListener("DOMContentLoaded", () => {
     answers[s.name] = checked.value;
 
     if (current === steps.length - 1) {
-      // 여기에 결과 페이지 경로 넣기
-      // course-page.html
-      window.location.href = "result.html";
+      // 마지막 스텝일 때 → 쿼리스트링으로 답변 전달
+      const params = new URLSearchParams(answers);
+      window.location.href =
+        "../course-page/course-page.html?" + params.toString();
       return;
     }
 
@@ -176,7 +176,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderStep();
   });
 
-  // Back
+  // Back 버튼
   backBtn.addEventListener("click", () => {
     if (current === 0) return;
     current -= 1;
