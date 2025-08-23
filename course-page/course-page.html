@@ -4,172 +4,26 @@
     <meta charset="UTF-8" />
     <title>course-page</title>
     <link rel="stylesheet" href="course-style.css" />
+    <link rel="stylesheet" href="../header/Header.css" />
   </head>
   <body>
+    <header id="header"></header>
     <main class="container">
       <h1 class="title">
-        AI가 엄선한 <span class="accent">통인시장</span> 코스 3가지!
+        AI가 엄선한 <span class="accent">추천 코스</span> 3가지!
       </h1>
-      <p class="subtitle">코스를 선택하여 지도에서 탐색하여 보세요.</p>
+      <p class="subtitle">코스를 선택하여 지도에서 탐색해보세요.</p>
 
-      <!-- 코스 1 -->
-      <section
-        class="course-row"
-        role="button"
-        tabindex="0"
-        aria-labelledby="course1-label"
-        aria-expanded="false"
-      >
-        <div class="course-label" id="course1-label">코스1</div>
-        <div class="flow">
-          <div class="step">
-            <div class="step-group">
-              <span class="pin" aria-hidden="true"></span>
-              <div class="txt">
-                <div class="name">ㅇㅇ집</div>
-                <div class="desc">매운 콩나물국밥</div>
-              </div>
-            </div>
-          </div>
-          <div class="arrow" aria-hidden="true">→</div>
-          <div class="step">
-            <div class="step-group">
-              <span class="pin" aria-hidden="true"></span>
-              <div class="txt">
-                <div class="name">ㅇㅇ분식</div>
-                <div class="desc">국물 떡볶이</div>
-              </div>
-            </div>
-          </div>
-          <div class="arrow" aria-hidden="true">→</div>
-          <div class="step">
-            <div class="step-group">
-              <span class="pin" aria-hidden="true"></span>
-              <div class="txt">
-                <div class="name">ㅇㅇ시장 종로방앗간</div>
-                <div class="desc">얼음 식혜</div>
-              </div>
-            </div>
-          </div>
+      <!-- 로딩 오버레이(초기 표시: JS에서 렌더 완료 후 숨김) -->
+      <div id="courseLoading" class="course-loading-overlay">
+        <div class="course-loading-inner">
+          <span class="course-loading-ico" aria-hidden="true"></span>
+          <div class="course-loading-text">로딩 중입니다...</div>
         </div>
+      </div>
 
-        <div class="course-actions" aria-hidden="true">
-          <div class="course-actions-inner">
-            <button type="button" class="btn btn-primary" data-go-map>
-              이 코스 지도로 보기
-            </button>
-            <button type="button" class="btn btn-outline" data-open-modal>
-              코스 정보 자세히 보기
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <!-- 코스 2 -->
-      <section
-        class="course-row"
-        role="button"
-        tabindex="0"
-        aria-labelledby="course2-label"
-        aria-expanded="false"
-      >
-        <div class="course-label" id="course2-label">코스2</div>
-        <div class="flow">
-          <div class="step">
-            <div class="step-group">
-              <span class="pin" aria-hidden="true"></span>
-              <div class="txt">
-                <div class="name">ㅇㅇ집</div>
-                <div class="desc">매운 콩나물국밥</div>
-              </div>
-            </div>
-          </div>
-          <div class="arrow" aria-hidden="true">→</div>
-          <div class="step">
-            <div class="step-group">
-              <span class="pin" aria-hidden="true"></span>
-              <div class="txt">
-                <div class="name">ㅇㅇ분식</div>
-                <div class="desc">국물 떡볶이</div>
-              </div>
-            </div>
-          </div>
-          <div class="arrow" aria-hidden="true">→</div>
-          <div class="step">
-            <div class="step-group">
-              <span class="pin" aria-hidden="true"></span>
-              <div class="txt">
-                <div class="name">ㅇㅇ시장 종로방앗간</div>
-                <div class="desc">얼음 식혜</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="course-actions" aria-hidden="true">
-          <div class="course-actions-inner">
-            <button type="button" class="btn btn-primary" data-go-map>
-              이 코스 지도로 보기
-            </button>
-            <button type="button" class="btn btn-outline" data-open-modal>
-              코스 정보 자세히 보기
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <!-- 코스 3 -->
-      <section
-        class="course-row"
-        role="button"
-        tabindex="0"
-        aria-labelledby="course3-label"
-        aria-expanded="false"
-      >
-        <div class="course-label" id="course3-label">코스3</div>
-        <div class="flow">
-          <div class="step">
-            <div class="step-group">
-              <span class="pin" aria-hidden="true"></span>
-              <div class="txt">
-                <div class="name">ㅇㅇ집</div>
-                <div class="desc">매운 콩나물국밥</div>
-              </div>
-            </div>
-          </div>
-          <div class="arrow" aria-hidden="true">→</div>
-          <div class="step">
-            <div class="step-group">
-              <span class="pin" aria-hidden="true"></span>
-              <div class="txt">
-                <div class="name">ㅇㅇ분식</div>
-                <div class="desc">국물 떡볶이</div>
-              </div>
-            </div>
-          </div>
-          <div class="arrow" aria-hidden="true">→</div>
-          <div class="step">
-            <div class="step-group">
-              <span class="pin" aria-hidden="true"></span>
-              <div class="txt">
-                <div class="name">ㅇㅇ시장 종로방앗간</div>
-                <div class="desc">얼음 식혜</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="course-actions" aria-hidden="true">
-          <div class="course-actions-inner">
-            <button type="button" class="btn btn-primary" data-go-map>
-              이 코스 지도로 보기
-            </button>
-            <button type="button" class="btn btn-outline" data-open-modal>
-              코스 정보 자세히 보기
-            </button>
-          </div>
-        </div>
-      </section>
+      <!-- 코스 리스트 -->
+      <div id="courseList"></div>
 
       <!-- 모달 -->
       <div class="modal-overlay" id="courseModal">
@@ -180,66 +34,12 @@
           aria-labelledby="modalTitle"
         >
           <div class="modal-header">
-            <h3 id="modalTitle">코스1</h3>
+            <h3 id="modalTitle">코스 상세</h3>
             <button type="button" class="modal-close" aria-label="닫기">
               ×
             </button>
           </div>
-          <div class="modal-body">
-            <div class="poi">
-              <div class="thumb"></div>
-              <div class="poi-list">
-                <div class="poi-row">
-                  <span class="poi-ico ico-title" aria-hidden="true"></span>
-                  <div class="poi-title">전주 콩나물 국밥 - 전주 비빔밥</div>
-                </div>
-                <div class="poi-row">
-                  <span class="poi-ico ico-location" aria-hidden="true"></span>
-                  <div class="poi-sub">서울특별시 종로구 내자동 1-3</div>
-                </div>
-                <div class="poi-row">
-                  <span class="poi-ico ico-time" aria-hidden="true"></span>
-                  <div class="poi-sub">am 6:00 - pm 9:00</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="poi">
-              <div class="thumb"></div>
-              <div class="poi-list">
-                <div class="poi-row">
-                  <span class="poi-ico ico-title" aria-hidden="true"></span>
-                  <div class="poi-title">전주 콩나물 국밥 - 전주 비빔밥</div>
-                </div>
-                <div class="poi-row">
-                  <span class="poi-ico ico-location" aria-hidden="true"></span>
-                  <div class="poi-sub">서울특별시 종로구 내자동 1-3</div>
-                </div>
-                <div class="poi-row">
-                  <span class="poi-ico ico-time" aria-hidden="true"></span>
-                  <div class="poi-sub">am 6:00 - pm 9:00</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="poi">
-              <div class="thumb"></div>
-              <div class="poi-list">
-                <div class="poi-row">
-                  <span class="poi-ico ico-title" aria-hidden="true"></span>
-                  <div class="poi-title">전주 콩나물 국밥 - 전주 비빔밥</div>
-                </div>
-                <div class="poi-row">
-                  <span class="poi-ico ico-location" aria-hidden="true"></span>
-                  <div class="poi-sub">서울특별시 종로구 내자동 1-3</div>
-                </div>
-                <div class="poi-row">
-                  <span class="poi-ico ico-time" aria-hidden="true"></span>
-                  <div class="poi-sub">am 6:00 - pm 9:00</div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <div class="modal-body" id="modalBody"></div>
           <div class="modal-footer">
             <button type="button" class="btn btn-primary" data-go-map-modal>
               이 코스 지도로 보기
@@ -247,8 +47,74 @@
           </div>
         </div>
       </div>
+
+      <!-- 템플릿: 코스 카드 -->
+      <template id="tpl-course-row">
+        <section
+          class="course-row"
+          role="button"
+          tabindex="0"
+          aria-expanded="false"
+        >
+          <div class="course-label">코스</div>
+          <div class="flow"></div>
+          <div class="course-actions" aria-hidden="true">
+            <div class="course-actions-inner">
+              <button type="button" class="btn btn-primary" data-go-map>
+                이 코스 지도로 보기
+              </button>
+              <button type="button" class="btn btn-outline" data-open-modal>
+                코스 정보 자세히 보기
+              </button>
+            </div>
+          </div>
+        </section>
+      </template>
+
+      <!-- 템플릿: 스텝(가게) -->
+      <template id="tpl-step">
+        <div class="step">
+          <div class="step-group">
+            <span class="pin" aria-hidden="true"></span>
+            <div class="txt">
+              <div class="name"></div>
+              <div class="desc"></div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- 템플릿: 스텝 사이 화살표 -->
+      <template id="tpl-arrow">
+        <div class="arrow" aria-hidden="true">→</div>
+      </template>
+
+      <!-- 템플릿: 모달 내 항목 -->
+      <template id="tpl-modal-poi">
+        <div class="poi">
+          <div class="thumb"></div>
+          <div class="poi-list">
+            <div class="poi-row">
+              <span class="poi-ico ico-title" aria-hidden="true"></span>
+              <div class="poi-title"></div>
+            </div>
+            <div class="poi-row">
+              <span class="poi-ico ico-location" aria-hidden="true"></span>
+              <div class="poi-sub poi-addr"></div>
+            </div>
+            <div class="poi-row">
+              <span class="poi-ico ico-time" aria-hidden="true"></span>
+              <div class="poi-sub poi-time"></div>
+            </div>
+          </div>
+        </div>
+      </template>
     </main>
 
+    <script type="module">
+      import { loadHeader } from "../header/Header.js";
+      loadHeader();
+    </script>
     <script src="course-script.js"></script>
   </body>
 </html>
