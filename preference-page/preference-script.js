@@ -12,7 +12,6 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   const progressImgs = progressItems.map((pi) => pi.querySelector("img"));
   const originalSrcs = progressImgs.map((img) => img.getAttribute("src"));
-
   const CHECK_ICON_SRC = "icon/done_icon.png";
 
   const optionLabels = Array.from(form.querySelectorAll("label"));
@@ -52,6 +51,28 @@ document.addEventListener("DOMContentLoaded", () => {
     },
   ];
 
+  // 한글 → enum 매핑(백으로 보낼 값)
+  const MARKET_MAP = {
+    통인시장: "TONGIN",
+    망원시장: "MANGWON",
+    남대문시장: "NAMDAEMUN",
+  };
+  const HUMAN_MAP = {
+    "혼자 방문해요.": "SOLO",
+    "친구, 연인과 방문해요.": "COUPLE",
+    "가족과 방문해요.": "FAMILY",
+  };
+  const SPICY_MAP = {
+    "매운 음식 좋아해요.": "HOT",
+    "조금 먹을 수 있어요.": "MILD",
+    "매운 음식 못 먹어요.": "NONE",
+  };
+  const FULL_MAP = {
+    "많이 배고파요!": "LIGHT",
+    "살짝 출출하네요.": "NORMAL",
+    "음, 배는 그렇게 안 고파요.": "FULL",
+  };
+
   let current = 0;
   const answers = {};
 
@@ -62,7 +83,6 @@ document.addEventListener("DOMContentLoaded", () => {
     titleEl.textContent = s.title;
     subEl.textContent = s.sub;
 
-    // 옵션 세팅/리셋
     optionLabels.forEach((label, idx) => {
       const input = label.querySelector('input[type="radio"]');
       const icon = label.querySelector(".option-icon");
@@ -80,7 +100,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // 이전 응답 복원
     if (answers[s.name]) {
       const prev = form.querySelector(
         `input[name="${s.name}"][value="${answers[s.name]}"]`
@@ -91,13 +110,11 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // 버튼/Back
     nextBtn.disabled = !form.querySelector(`input[name="${s.name}"]:checked`);
     nextBtn.textContent =
       current === steps.length - 1 ? "Result →" : "Next Question →";
     backBtn.style.visibility = current === 0 ? "hidden" : "visible";
 
-    // 스텝별 마진 클래스(body에 부여)
     document.body.classList.toggle("step-1", current === 0);
     document.body.classList.toggle("step-others", current !== 0);
 
@@ -117,36 +134,30 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 진행바: 현재 스텝=즉시 틴트, 이전 스텝=체크(아이콘 교체)
   function updateProgressVisual() {
     progressItems.forEach((item, idx) => {
       const img = progressImgs[idx];
       item.classList.remove("active", "is-done");
 
       if (idx < current) {
-        if (img.getAttribute("src") !== CHECK_ICON_SRC) {
+        if (img.getAttribute("src") !== CHECK_ICON_SRC)
           img.setAttribute("src", CHECK_ICON_SRC);
-        }
-        item.classList.add("is-done"); // 26x26 강제
+        item.classList.add("is-done");
       } else if (idx === current) {
-        if (img.getAttribute("src") !== originalSrcs[idx]) {
+        if (img.getAttribute("src") !== originalSrcs[idx])
           img.setAttribute("src", originalSrcs[idx]);
-        }
-        item.classList.add("active"); // 필터로 #d64550 톤
+        item.classList.add("active");
       } else {
-        if (img.getAttribute("src") !== originalSrcs[idx]) {
+        if (img.getAttribute("src") !== originalSrcs[idx])
           img.setAttribute("src", originalSrcs[idx]);
-        }
       }
     });
-
-    // 디바이더: 색만 클래스 토글로 제어
-    progressDividers.forEach((div, idx) => {
-      div.classList.toggle("done", idx < current);
-    });
+    progressDividers.forEach((div, idx) =>
+      div.classList.toggle("done", idx < current)
+    );
   }
 
-  // 라디오 변경
+  // 선택 변경
   form.addEventListener("change", (e) => {
     if (!e.target.matches('input[type="radio"]')) return;
     const s = steps[current];
@@ -155,7 +166,7 @@ document.addEventListener("DOMContentLoaded", () => {
     updateLineOptions();
   });
 
-  // Next: 마지막 스텝이면 다음 페이지로 이동(알림 X)
+  // 다음(이동)
   nextBtn.addEventListener("click", () => {
     const s = steps[current];
     const checked = form.querySelector(`input[name="${s.name}"]:checked`);
@@ -166,9 +177,19 @@ document.addEventListener("DOMContentLoaded", () => {
     answers[s.name] = checked.value;
 
     if (current === steps.length - 1) {
-      // 여기에 결과 페이지 경로 넣기
-      // course-page.html
-      window.location.href = "result.html";
+      const params = new URLSearchParams({
+        market: MARKET_MAP[answers.market] ?? "TONGIN",
+        humanLevel: HUMAN_MAP[answers.companion] ?? "SOLO",
+        spicyLevel: SPICY_MAP[answers.spicy] ?? "NONE",
+        fullLevel: FULL_MAP[answers.hunger] ?? "LIGHT",
+      });
+      // 상대경로 꼬임 방지: 절대경로 조립
+      const target = new URL("../course-page/course-page.html", location.href);
+      target.search = params.toString();
+
+      // 로딩 오버레이 없이 즉시 이동
+      nextBtn.disabled = true;
+      location.href = target.href;
       return;
     }
 
@@ -176,12 +197,23 @@ document.addEventListener("DOMContentLoaded", () => {
     renderStep();
   });
 
-  // Back
+  // 이전
   backBtn.addEventListener("click", () => {
     if (current === 0) return;
     current -= 1;
     renderStep();
   });
+
+  // 하단 ‘랜덤 코스 보기’ 링크 절대경로 보정(로딩 없음)
+  const rndLink = document.querySelector(".random-course a");
+  if (rndLink) {
+    const rndTarget = new URL(
+      "../course-page/course-random.html",
+      location.href
+    );
+    // href만 보정하고 기본 링크 동작 그대로 사용(불필요한 preventDefault 제거)
+    rndLink.setAttribute("href", rndTarget.href);
+  }
 
   renderStep();
 });
