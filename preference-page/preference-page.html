@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>preference_page</title>
     <link rel="stylesheet" href="preference-style.css" />
+    <link rel="stylesheet" href="../header/Header.css" />
   </head>
-  <body></body>
+  <body>
+    <header id="header"></header>
 
     <main class="container">
       <section class="progress-icons">
@@ -14,7 +16,6 @@
           <img src="icon/market_icon.png" alt="시장" />
         </div>
         <div class="progress-divider"></div>
-        <!-- people 아이콘만 따로 크기 조절 -->
         <div class="progress-item pi-people">
           <img src="icon/people_icon.png" alt="동행" />
         </div>
@@ -79,16 +80,20 @@
         </form>
       </section>
 
-      <!-- Back 버튼 -> step 2~4에서만 보이게 JS 설정 -->
       <div class="below-actions">
         <button type="button" class="back-btn" id="back-btn">Back</button>
       </div>
 
       <p class="random-course">
-        설문 없이 랜덤 코스를 받고 싶으신가요? <a href="#">랜덤 코스 보기 →</a>
+        설문 없이 랜덤 코스를 받고 싶으신가요?
+        <a href="../course-page/course-random.html">랜덤 코스 보기 →</a>
       </p>
     </main>
 
+    <script type="module">
+      import { loadHeader } from "../header/Header.js";
+      loadHeader();
+    </script>
     <script src="preference-script.js"></script>
   </body>
 </html>
