@@ -1,39 +1,70 @@
-let courseData = [
-  {
-    id: 1,
-    name: "통인시장",
-    lat: 37.58099,
-    lng: 126.97098,
-  },
-  {
-    id: 2,
-    name: "전주 콩나물 국밥",
-    lat: 37.5564437,
-    lng: 126.9059919,
-    mainMenu: "순두부 비빔밥",
-  },
-  {
-    id: 3,
-    name: "○○분식",
-    lat: 37.5553218,
-    lng: 126.9058578,
-    mainMenu: "국물 떡볶이",
-  },
-  {
-    id: 4,
-    name: "○○시장 종로방앗간",
-    lat: 37.5568264,
-    lng: 126.9058578,
-    mainMenu: "부대찌개",
-  },
-];
-
+let courseData = [];
 let map;
 
-// 지도 초기화
-function initMap() {
+// === 선택된 코스 불러오기 ===
+async function loadCourseData() {
+  const selectedCourseString = localStorage.getItem("selectedCourse");
+  if (!selectedCourseString) {
+    console.error("localStorage에 선택된 코스 데이터가 없습니다.");
+    return [];
+  }
+
+  const selectedCourse = JSON.parse(selectedCourseString);
+
+  const fetchPromises = selectedCourse.shops.map(async (shop) => {
+    try {
+      const shopRes = await fetch(
+        `http://54.180.163.161:8080/api/shops/${shop.shopId}`
+      );
+      if (!shopRes.ok) {
+        throw new Error(
+          `가게 정보 조회 실패: ${shop.name} (${shopRes.status})`
+        );
+      }
+      const shopData = await shopRes.json();
+      const shopResult = shopData.result || {};
+
+      const openTime = shopResult.openTime || "-";
+      const closeTime = shopResult.closeTime || "-";
+
+      // ✅ 수정된 부분: 메뉴 정보에 price와 description 추가
+      const menus = Array.isArray(shopResult.menus)
+        ? shopResult.menus.map((menu) => ({
+            name: menu.name,
+            image: menu.imageUrl || menu.ImageUrl || "",
+            price: menu.price || "가격 정보 없음",
+            description: menu.description || "",
+          }))
+        : [];
+
+      return {
+        id: shopResult.shopId,
+        name: shopResult.name,
+        lat: shopResult.yPos,
+        lng: shopResult.xPos,
+        address: shopResult.location,
+        phone: shopResult.phone || "정보 없음", // ✅ 전화번호
+        hours: `${openTime} ~ ${closeTime}`,
+        image: shopResult.imageUrl || "",
+        menus: menus,
+      };
+    } catch (err) {
+      console.error(`[가게 정보 로딩 실패] ${shop.name || ""}:`, err);
+      return null;
+    }
+  });
+
+  const results = await Promise.all(fetchPromises);
+  return results.filter((shop) => shop !== null);
+}
+
+// === 지도 초기화 ===
+async function initMap() {
+  courseData = await loadCourseData();
+  if (courseData.length === 0) return;
+
   map = new naver.maps.Map("map", {
-    center: new naver.maps.LatLng(courseData[3].lat, courseData[3].lng),
+    center: new naver.maps.LatLng(courseData[1].lat, courseData[1].lng),
     zoom: 17,
   });
 
@@ -41,39 +72,45 @@ function initMap() {
   renderMarkersAndPath();
 }
 
-// 버튼 생성
+// === 버튼 생성 ===
 function renderCourseButtons() {
   const headerContainer = document.getElementById("courseBar");
   headerContainer.innerHTML = "";
+
+  const marketName = localStorage.getItem("selectedMarket") || "시장";
+  const specialBtn = document.createElement("button");
+  specialBtn.className = "course-btn special-btn";
+  specialBtn.textContent = marketName;
+
+  specialBtn.onclick = () => {
+    if (courseData.length > 0) {
+      moveToLocation(courseData[0].lat, courseData[0].lng);
+    }
+  };
+  headerContainer.appendChild(specialBtn);
 
   courseData.forEach((store, index) => {
     const btn = document.createElement("button");
     btn.className = "course-btn";
 
-    if (index === 0) {
-      btn.classList.add("special-btn");
-      btn.textContent = store.name;
-    } else {
-      const pinImg = document.createElement("img");
-      pinImg.src = "../map-page/map_asset/red-pin.png";
-      pinImg.alt = "Red Pin";
-      pinImg.className = "pin-icon";
+    const pinImg = document.createElement("img");
+    pinImg.src = "../map-page/map_asset/red-pin.png";
+    pinImg.alt = "Red Pin";
+    pinImg.className = "pin-icon";
 
-      const textSpan = document.createElement("span");
-      textSpan.textContent = store.name;
+    const textSpan = document.createElement("span");
+    textSpan.textContent = store.name;
 
-      btn.appendChild(pinImg);
-      btn.appendChild(textSpan);
-    }
+    btn.appendChild(pinImg);
+    btn.appendChild(textSpan);
 
     btn.onclick = () => {
       moveToLocation(store.lat, store.lng);
-      openStoreDetail(store);
+      showDetailPanel(store);
     };
-
     headerContainer.appendChild(btn);
 
-    if (index > 0 && index < courseData.length - 1) {
+    if (index < courseData.length - 1) {
       const arrowImg = document.createElement("img");
       arrowImg.src = "../map-page/map_asset/map-arrow.png";
       arrowImg.alt = "Arrow";
@@ -83,71 +120,166 @@ function renderCourseButtons() {
   });
 }
 
-function renderMarkersAndPath() {
-  let pathPoints = [];
+// === 거리 계산 ===
+function distance(lat1, lng1, lat2, lng2) {
+  const R = 6371e3;
+  const toRad = (x) => (x * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
-  courseData.forEach((store, index) => {
-    if (index === 0) return; // 통인시장 제외
+// === 마커 + 라벨 겹침 방지 + 경로 + 클릭 이벤트 ===
+async function renderMarkersAndPath() {
+  const positions = [];
+  const labelBounds = [];
+  const projection = map.getProjection();
 
+  function isOverlapping(a, b) {
+    return !(
+      a.right < b.left ||
+      a.left > b.right ||
+      a.bottom < b.top ||
+      a.top > b.bottom
+    );
+  }
+
+  courseData.forEach((store) => {
     const position = new naver.maps.LatLng(store.lat, store.lng);
-    pathPoints.push({ store, position });
+    positions.push({ position, store });
 
-    const labelText = store.mainMenu || store.name;
-
-    // 마커 생성 (말풍선 + 핀 위로 살짝 올리기)
     const marker = new naver.maps.Marker({
-      position: position,
-      map: map,
+      position,
+      map,
+      icon: {
+        url: "../map-page/map_asset/map-pin.png",
+        size: new naver.maps.Size(32, 48),
+        scaledSize: new naver.maps.Size(20, 48),
+        anchor: new naver.maps.Point(16, 32),
+      },
+      title: store.name,
+    });
+
+    const labelText = store.name;
+
+    // 👉 기본은 오른쪽, 겹치면 top → bottom → left 순서로 fallback
+    const directions = [
+      { x: 10, y: -25, className: "right" }, // 기본
+      { x: -60, y: -80, className: "top" }, // 1차 fallback
+      { x: -50, y: 20, className: "bottom" }, // 2차 fallback
+      { x: -100, y: -25, className: "left" }, // 최후 fallback
+    ];
+
+    let chosen = directions[0];
+    const point = projection.fromCoordToOffset(position);
+
+    for (let dir of directions) {
+      const newBox = {
+        left: point.x + dir.x,
+        right: point.x + dir.x + 120,
+        top: point.y + dir.y,
+        bottom: point.y + dir.y + 40,
+      };
+      const overlap = labelBounds.some((box) => isOverlapping(newBox, box));
+      if (!overlap) {
+        chosen = dir;
+        labelBounds.push(newBox);
+        break;
+      }
+    }
+
+    const labelDiv = new naver.maps.Marker({
+      position,
+      map,
       icon: {
         content: `
-          <div class="marker-label-container">${labelText}</div>
-          <img src="../map-page/map_asset/map-pin.png" class="marker-label-pin" />
-        `,
-        anchor: new naver.maps.Point(12, 50), // y값 키워서 마커/말풍선 위로 올리기
+        <div class="marker-label-container ${chosen.className}"
+            style="transform: translate(${chosen.x}px, ${chosen.y}px);">
+            ${labelText}
+        </div>
+      `,
+        anchor: new naver.maps.Point(0, 0),
       },
     });
 
-    // 마커 클릭 이벤트
     naver.maps.Event.addListener(marker, "click", function () {
-      openStoreDetail(store);
+      showDetailPanel(store);
+    });
+    naver.maps.Event.addListener(labelDiv, "click", function () {
+      showDetailPanel(store);
     });
   });
 
-  // === Polyline 경로 정렬 ===
-  // 여기서는 lat(위도) 오름차순으로 정렬, 필요하면 lng(경도) 기준으로 바꿀 수 있음
-  pathPoints.sort((a, b) => a.store.lat - b.store.lat);
+  // === 경로 그리기 ===
+  if (positions.length >= 2) {
+    let mergedPath = [];
 
-  const sortedPath = pathPoints.map((p) => p.position);
+    // ✅ 코스 전체 순서대로 (0번 ~ 마지막 가게)
+    for (let i = 0; i < positions.length - 1; i++) {
+      const start = positions[i].position;
+      const end = positions[i + 1].position;
 
-  // Polyline 생성
-  new naver.maps.Polyline({
-    path: sortedPath,
-    map: map,
-    strokeColor: "rgba(248, 155, 155, 1)",
-    strokeOpacity: 0.8,
-    strokeWeight: 4,
-  });
+      try {
+        const url = new URL("http://54.180.163.161:8080/api/directions");
+        url.searchParams.set("alat", start.lat());
+        url.searchParams.set("alng", start.lng());
+        url.searchParams.set("blat", end.lat());
+        url.searchParams.set("blng", end.lng());
+        url.searchParams.set("priority", "RECOMMEND");
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.path && Array.isArray(data.path) && data.path.length > 0) {
+          const segmentPath = data.path.map(
+            ([lat, lng]) => new naver.maps.LatLng(lat, lng)
+          );
+
+          // ✅ 첫 구간이면 출발점 포함
+          if (i === 0) mergedPath.push(start);
+
+          // ✅ 중복 좌표 제거 + 잘못된 점 거르기
+          for (let pt of segmentPath) {
+            const last = mergedPath[mergedPath.length - 1];
+            if (
+              !last ||
+              pt.lat().toFixed(6) !== last.lat().toFixed(6) ||
+              pt.lng().toFixed(6) !== last.lng().toFixed(6)
+            ) {
+              mergedPath.push(pt);
+            }
+          }
+
+          // ✅ 마지막 구간이면 도착점 포함
+          if (i === positions.length - 2) mergedPath.push(end);
+        }
+      } catch (error) {
+        console.error(`${positions[i + 1].store.name} 길찾기 오류:`, error);
+      }
+    }
+
+    // === Polyline 생성 ===
+    if (mergedPath.length > 1) {
+      new naver.maps.Polyline({
+        map,
+        path: mergedPath,
+        strokeWeight: 3,
+        strokeColor: "#FF0013",
+        strokeOpacity: 0.9,
+        strokeStyle: "solid",
+        strokeLineCap: "round",
+        strokeLineJoin: "round",
+      });
+    }
+  }
 }
-// 모달 데이터 열기
-function openStoreDetail(store) {
-  const dummyData = {
-    name: store.name,
-    address: "서울특별시 종로구 내자동 1-3",
-    hours: "06:00 - 21:00",
-    phone: "010-1234-5678",
-    menus: [
-      { name: "순두부 비빔밥", image: "../map-page/map_asset/modal-image.png" },
-      {
-        name: "해물 콩나물국밥",
-        image: "../map-page/map_asset/modal-image.png",
-      },
-      { name: "부대찌개", image: "../map-page/map_asset/modal-image.png" },
-    ],
-  };
-  showDetailPanel(dummyData);
-}
-
-// 모달 표시
+// === 상세 패널 ===
 function showDetailPanel(data) {
   document.getElementById("storeName").textContent = data.name;
   document.getElementById("storeAddr").textContent = data.address;
@@ -156,28 +288,40 @@ function showDetailPanel(data) {
 
   const menuContainer = document.getElementById("storeImages");
   menuContainer.innerHTML = "";
-  data.menus.forEach((menu) => {
-    const menuItem = document.createElement("div");
-    menuItem.className = "menu-item";
-    menuItem.innerHTML = `
-      <img src="${menu.image}" alt="${menu.name}" />
-      <span>${menu.name}</span>
-    `;
-    menuContainer.appendChild(menuItem);
-  });
+  if (data.menus && Array.isArray(data.menus)) {
+    data.menus.forEach((menu) => {
+      const menuItem = document.createElement("div");
+      menuItem.className = "menu-item";
+
+      // ✅ 수정된 부분: 이미지, 이름, 가격, 설명을 포함하도록 HTML 구조 변경
+      menuItem.innerHTML = `
+                <img src="${menu.image}" alt="${menu.name}" class="menu-image"/>
+                <div class="menu-details">
+                    <div class="menu-name">${menu.name}</div>
+                    <div class="menu-price">${menu.price}원</div>
+                    <div class="menu-desc">${menu.description || ""}</div>
+                </div>
+            `;
+      menuContainer.appendChild(menuItem);
+    });
+  }
 
   document.getElementById("detailPanel").style.display = "flex";
 }
 
-// 닫기 버튼
 document.getElementById("closePanel").onclick = function () {
   document.getElementById("detailPanel").style.display = "none";
 };
 
-// 지도 이동
 function moveToLocation(lat, lng) {
   map.setCenter(new naver.maps.LatLng(lat, lng));
 }
 
-// 페이지 로드 시 실행
+// 이 함수는 더 이상 필요하지 않습니다.
+async function openStoreDetail(shopId) {
+  console.error(
+    "openStoreDetail 함수는 더 이상 사용되지 않습니다. showDetailPanel을 사용하세요."
+  );
+}
+
 window.onload = initMap;

@@ -165,13 +165,50 @@ document.addEventListener("DOMContentLoaded", () => {
     answers[s.name] = checked.value;
 
     if (current === steps.length - 1) {
-      // 마지막 스텝일 때 → 쿼리스트링으로 답변 전달
-      const params = new URLSearchParams(answers);
+      // 한글 응답을 API용 영어 Enum으로 변환하는 매핑
+      const answerMapping = {
+        통인시장: "TONGIN",
+        남대문시장: "NAMDAEMUN",
+        망원시장: "MANGWON",
+        "혼자 방문해요.": "SOLO",
+        "친구, 연인과 방문해요.": "COUPLE",
+        "가족과 방문해요.": "FAMILY",
+        "매운 음식 좋아해요.": "HOT",
+        "조금 먹을 수 있어요.": "MILD",
+        "매운 음식 못 먹어요.": "NONE",
+        "많이 배고파요!": "FULL",
+        "살짝 출출하네요.": "NORMAL",
+        "음, 배는 그렇게 안 고파요.": "LIGHT",
+      };
+
+      const finalAnswers = {};
+      for (const key in answers) {
+        if (answers.hasOwnProperty(key)) {
+          // 매핑 테이블에서 변환된 값을 찾고, 없으면 원본 값 사용 (폴백)
+          finalAnswers[key] = answerMapping[answers[key]] || answers[key];
+        }
+      }
+
+      // API 요청에 필요한 파라미터 이름으로 key 수정
+      finalAnswers.humanLevel = finalAnswers.companion;
+      delete finalAnswers.companion;
+
+      finalAnswers.spicyLevel = finalAnswers.spicy;
+      delete finalAnswers.spicy;
+
+      finalAnswers.fullLevel = finalAnswers.hunger;
+      delete finalAnswers.hunger;
+
+      // 시장 이름은 따로 저장 (지도 페이지에서 사용)
+      if (answers.market) {
+        localStorage.setItem("selectedMarket", answers.market);
+      }
+
+      const params = new URLSearchParams(finalAnswers);
       window.location.href =
         "../course-page/course-page.html?" + params.toString();
       return;
     }
-
     current += 1;
     renderStep();
   });
