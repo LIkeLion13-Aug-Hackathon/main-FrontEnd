@@ -39,9 +39,10 @@ body {
   text-align: center;
 }
 
+/* 코스 카드 */
 .course-row {
   display: grid;
-  grid-template-columns: 64px 1fr;
+  grid-template-columns: 70px 1fr;
   column-gap: 24px;
   align-items: center;
   background: #ffffff;
@@ -62,8 +63,13 @@ body {
 
 .course-label {
   grid-column: 1;
+  display: flex;
+  flex-direction: column; /* 시장명 / 코스명 두 줄 구조 */
+  align-items: center;
+  justify-content: center;
   text-align: center;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .flow {
@@ -85,7 +91,7 @@ body {
   will-change: transform;
 }
 
-/* 핀+텍스트 그룹 */
+/* 핀+텍스트 */
 .step-group {
   display: inline-flex;
   align-items: center;
@@ -124,7 +130,7 @@ body {
   user-select: none;
 }
 
-/* 클릭 시 상세 설명 */
+/* 카드 열렸을 때 하단 액션 */
 .course-actions {
   grid-column: 2;
   display: none;
@@ -132,8 +138,6 @@ body {
   margin-top: 8px;
   position: relative;
 }
-
-/* divider */
 .course-actions::before {
   content: "";
   display: block;
@@ -141,12 +145,12 @@ body {
   background: rgba(0, 0, 0, 0.12);
   margin: 0 0 8px;
 }
-
 .course-actions-inner {
   display: flex;
   justify-content: center;
   gap: 16px;
 }
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -163,13 +167,13 @@ body {
 }
 .btn-primary {
   background: #ff914d;
-  color: #ffffff;
+  color: #fff;
 }
 .btn-primary:hover {
   background: #ff7f2f;
 }
 .btn-outline {
-  background: #ffffff;
+  background: #fff;
   color: #ff914d;
   border-color: #ff914d;
 }
@@ -191,7 +195,7 @@ body {
 .course-row:is(:hover, .open) .txt,
 .course-row:is(:hover, .open) .txt .name,
 .course-row:is(:hover, .open) .txt .desc {
-  color: #ffffff;
+  color: #fff;
   opacity: 1;
 }
 .course-row:is(:hover, .open) .pin {
@@ -208,6 +212,7 @@ body {
   transform: none;
 }
 
+/* 모달 오버레이 */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -217,7 +222,6 @@ body {
   justify-content: center;
   z-index: 1000;
 }
-
 .modal-overlay.is-open {
   display: flex;
 }
@@ -229,7 +233,6 @@ body {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
   overflow: hidden;
 }
-
 .modal-header {
   display: flex;
   align-items: center;
@@ -280,7 +283,6 @@ body {
   border-bottom: 0;
 }
 
-/* 회색 박스 */
 .thumb {
   width: 128px;
   height: 96px;
@@ -333,4 +335,83 @@ body {
 
 body.modal-open {
   overflow: hidden;
+}
+
+/* =========================
+   코스 페이지 로딩 오버레이
+========================= */
+.course-loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  z-index: 9999;
+}
+.course-loading-inner {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.course-loading-ico {
+  width: 28px;
+  height: 28px;
+  background: url("icon/refresh_icon.png") center/contain no-repeat;
+  animation: spin 0.9s linear infinite;
+}
+.course-loading-text {
+  color: #362e2e;
+  font-weight: 700;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 하단 새로고침 문구 + 링크 */
+.random-refresh {
+  margin: 18px 0 0;
+  text-align: center;
+}
+.random-refresh .refresh-caption {
+  color: #777777;
+  margin-right: 6px;
+}
+.refresh-link {
+  color: #ff914d;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.refresh-link:hover {
+  text-decoration: underline;
+}
+.refresh-ico {
+  width: 14px;
+  height: 14px;
+  background-image: url("icon/refresh_icon.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  display: inline-block;
+}
+.refresh-ico.is-rotating {
+  animation: spin 0.8s linear infinite;
+}
+
+/* 랜덤 페이지에서 라벨 줄 간격(여기 숫자만 바꿔서 미세 조절) */
+.is-random .course-label .market-line {
+  display: block;
+  margin-bottom: 2px; /* 시장명 아래 간격 */
+  line-height: 1.05;
+}
+.is-random .course-label .course-name-line {
+  display: block;
+  margin-top: 0; /* 코스명 위 간격 */
+  line-height: 1.15;
 }
