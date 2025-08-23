@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>course-random</title>
+    <link rel="stylesheet" href="course-style.css" />
+    <link rel="stylesheet" href="../header/Header.css" />
+  </head>
+  <body>
+    <header id="header"></header>
+    <main class="container">
+      <h1 class="title">AI가 각 시장마다 코스를 준비했어요!</h1>
+      <p class="subtitle">코스를 선택하여 지도에서 탐색하여 보세요.</p>
+
+      <!-- 로딩 오버레이(랜덤 페이지용) -->
+      <div id="courseLoading" class="course-loading-overlay">
+        <div class="course-loading-inner">
+          <span class="course-loading-ico" aria-hidden="true"></span>
+          <div class="course-loading-text">로딩 중입니다...</div>
+        </div>
+      </div>
+
+      <div id="courseList"></div>
+
+      <div class="modal-overlay" id="courseModal">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+          <div class="modal-header">
+            <h3 id="modalTitle">코스 상세</h3>
+            <button type="button" class="modal-close" aria-label="닫기">×</button>
+          </div>
+          <div class="modal-body"></div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-go-map-modal>
+              이 코스 지도로 보기
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <template id="tpl-course-row">
+        <section class="course-row" role="button" tabindex="0" aria-expanded="false">
+          <div class="course-label"></div>
+          <div class="flow"></div>
+          <div class="course-actions" aria-hidden="true">
+            <div class="course-actions-inner">
+              <button type="button" class="btn btn-primary" data-go-map">이 코스 지도로 보기</button>
+              <button type="button" class="btn btn-outline" data-open-modal>코스 정보 자세히 보기</button>
+            </div>
+          </div>
+        </section>
+      </template>
+
+      <template id="tpl-step">
+        <div class="step">
+          <div class="step-group">
+            <span class="pin" aria-hidden="true"></span>
+            <div class="txt">
+              <div class="name"></div>
+              <div class="desc"></div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <template id="tpl-arrow"><div class="arrow" aria-hidden="true">→</div></template>
+
+      <template id="tpl-modal-poi">
+        <div class="poi">
+          <div class="thumb"></div>
+          <div class="poi-list">
+            <div class="poi-row"><span class="poi-ico ico-title" aria-hidden="true"></span><div class="poi-title"></div></div>
+            <div class="poi-row"><span class="poi-ico ico-location" aria-hidden="true"></span><div class="poi-sub poi-addr"></div></div>
+            <div class="poi-row"><span class="poi-ico ico-time" aria-hidden="true"></span><div class="poi-sub poi-time"></div></div>
+          </div>
+        </div>
+      </template>
+
+      <!-- 하단: 코스 새로고침 문구 + 링크 + 아이콘 -->
+      <section class="random-refresh">
+        <span class="refresh-caption">새로운 코스를 원하시나요?</span>
+        <a href="#" id="randomRefreshLink" class="refresh-link">
+          코스 새로고침 <span class="refresh-ico" aria-hidden="true"></span>
+        </a>
+      </section>
+    </main>
+
+    <script type="module">
+      import { loadHeader } from "../header/Header.js";
+      loadHeader();
+    </script>
+    <script src="course-random-script.js"></script>
+  </body>
+</html>
