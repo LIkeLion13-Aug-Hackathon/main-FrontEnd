@@ -1,6 +1,6 @@
 // course-random-script.js
 document.addEventListener("DOMContentLoaded", async () => {
-  const API_BASE = ""; // 같은 오리진(/api) 프록시 사용
+  const API_BASE = "https://withtime.shop"; // HTTPS API 도메인 직접 호출
   document.body.classList.add("is-random");
 
   const courseList = document.getElementById("courseList");
@@ -113,7 +113,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const shopsIndex = { ready: false, byId: new Map(), byName: new Map() };
   async function ensureShopsIndex() {
     if (shopsIndex.ready) return;
-    const json = await httpGetJSON(`/api/shops`);
+    const json = await httpGetJSON(`${API_BASE}/api/shops`);
     const arr = Array.isArray(json?.result) ? json.result : [];
     arr.forEach((raw) => {
       const d = formatShop(raw);
@@ -131,7 +131,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     await ensureShopsIndex();
     if (shopsIndex.byId.has(id)) return shopsIndex.byId.get(id);
     if (shopCacheById.has(id)) return shopCacheById.get(id);
-    const json = await httpGetJSON(`/api/shops/${encodeURIComponent(id)}`);
+    const json = await httpGetJSON(
+      `${API_BASE}/api/shops/${encodeURIComponent(id)}`
+    );
     const detail = formatShop(json?.result);
     if (detail) {
       shopsIndex.byId.set(id, detail);
@@ -146,7 +148,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await ensureShopsIndex();
     const key = name.trim().toLowerCase();
     if (shopsIndex.byName.has(key)) return shopsIndex.byName.get(key);
-    const url = new URL("/api/shops/shop-name", location.origin);
+    const url = new URL(`${API_BASE}/api/shops/shop-name`);
     url.searchParams.set("name", name);
     const json = await httpGetJSON(url.toString());
     const detail = formatShop(json?.result);
@@ -161,7 +163,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (id == null) return [];
     if (menuCacheByShopId.has(id)) return menuCacheByShopId.get(id);
     const json = await httpGetJSON(
-      `/api/shops/${encodeURIComponent(id)}/menus`
+      `${API_BASE}/api/shops/${encodeURIComponent(id)}/menus`
     );
     const list = Array.isArray(json?.result?.menuPreviewList)
       ? json.result.menuPreviewList
@@ -173,7 +175,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 랜덤 API
   async function fetchRandomCoursesOnce() {
     try {
-      const res = await fetch(`/api/courses/random`, {
+      const res = await fetch(`${API_BASE}/api/courses/random`, {
         headers: { Accept: "application/json" },
       });
       const text = await res.text();
@@ -329,9 +331,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         poi.querySelector(".poi-title").textContent = `${
           s._shop?.title || s.name || ""
         } - ${sig || "-"}`;
-        poi.querySelector(".poi-addr").textContent =
-          s._shop?.addr || s.location || "";
-        // 시간 표시 복구
+        poi.querySelector(".poi-addr").textContent = s._shop?.addr || "";
+        // 시간 다시 표시
         poi.querySelector(".poi-time").textContent =
           buildTimeLineFrom(s._shop || s) || "-";
         frag.appendChild(poi);
@@ -356,6 +357,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // 클릭 이벤트(지도 연결 포함) — 모달 내부 버튼이 2개여도 전부 잡음
   document.addEventListener("click", (e) => {
+    // 모달 닫기
     if (e.target === modal || e.target.closest(".modal-close")) {
       if (modal?.classList.contains("is-open")) {
         closeModal();
@@ -363,7 +365,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
 
-    // 카드 버튼 → 지도 이동
+    // 지도 이동(카드 버튼)
     const goMapBtn = e.target.closest("[data-go-map]");
     if (goMapBtn) {
       const idx = parseInt(goMapBtn.dataset.courseIndex || "-1", 10);
@@ -372,7 +374,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    // 모달 내부의 모든 '이 코스 지도로 보기' 버튼
+    // 지도 이동(모달 버튼)
+    const goModalBtn = e.target.closest("[data-go-map-modal], .btn-go-map]");
     const goModalBtnAny = e.target.closest(
       ".modal [data-go-map-modal], .modal [data-go-map], .modal .btn-go-map"
     );

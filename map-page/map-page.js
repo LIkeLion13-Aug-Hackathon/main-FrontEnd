@@ -3,8 +3,8 @@ let courseData = [];
 let map;
 window.routeLine = null; // 이전 라인 지우기 용도
 
-// 같은 오리진(/api) 프록시 사용
-const API_BASE = "";
+// HTTPS API 도메인 직접 호출
+const API_BASE = "https://withtime.shop";
 
 // 캐시
 const shopByNameCache = new Map(); // name → shop detail
@@ -61,7 +61,7 @@ async function loadCourseData() {
     // id 우선
     if (shop.shopId != null) {
       const byId = await httpGetJSON(
-        `/api/shops/${encodeURIComponent(shop.shopId)}`
+        `${API_BASE}/api/shops/${encodeURIComponent(shop.shopId)}`
       );
       if (byId?.result) return byId.result;
     }
@@ -69,7 +69,7 @@ async function loadCourseData() {
     const nameKey = (shop.name || "").trim().toLowerCase();
     if (nameKey) {
       if (shopByNameCache.has(nameKey)) return shopByNameCache.get(nameKey);
-      const url = new URL("/api/shops/shop-name", location.origin);
+      const url = new URL(`${API_BASE}/api/shops/shop-name`);
       url.searchParams.set("name", shop.name || "");
       const byName = await httpGetJSON(url.toString());
       const detail = byName?.result || null;
@@ -120,7 +120,7 @@ async function fetchMenusByShopIdCached(shopId) {
   if (shopId == null) return [];
   if (menusByIdCache.has(shopId)) return menusByIdCache.get(shopId);
   const data = await httpGetJSON(
-    `/api/shops/${encodeURIComponent(shopId)}/menus`,
+    `${API_BASE}/api/shops/${encodeURIComponent(shopId)}/menus`,
     8000
   );
   const list = Array.isArray(data?.result?.menuPreviewList)
@@ -133,7 +133,7 @@ async function fetchShopByNameCached(name) {
   const key = (name || "").trim().toLowerCase();
   if (!key) return null;
   if (shopByNameCache.has(key)) return shopByNameCache.get(key);
-  const url = new URL("/api/shops/shop-name", location.origin);
+  const url = new URL(`${API_BASE}/api/shops/shop-name`);
   url.searchParams.set("name", name);
   const data = await httpGetJSON(url.toString(), 8000);
   const detail = data?.result || null;
@@ -474,7 +474,7 @@ async function renderMarkersAndPath() {
     const segEnd = routeNodes[i + 1].position;
 
     try {
-      const url = new URL("/api/directions", location.origin);
+      const url = new URL(`${API_BASE}/api/directions`);
       url.searchParams.set("alat", segStart.lat());
       url.searchParams.set("alng", segStart.lng());
       url.searchParams.set("blat", segEnd.lat());

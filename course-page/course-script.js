@@ -1,6 +1,6 @@
 // course-script.js
 document.addEventListener("DOMContentLoaded", async () => {
-  const API_BASE = ""; // 같은 오리진(/api) 프록시 사용
+  const API_BASE = "https://withtime.shop"; // HTTPS API 도메인 직접 호출
 
   const courseList = document.getElementById("courseList");
   const modal = document.getElementById("courseModal");
@@ -62,7 +62,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     if (typeof t === "string") {
       const m = t.match(/(\d{1,2})\s*[:시]\s*(\d{1,2})?/);
-      if (m) return `${to2(Number(m[1]))}:${to2(Number(m[2] ?? 0))}`;
+      if (m) {
+        const h = to2(Number(m[1]));
+        const mm = to2(Number(m[2] ?? 0));
+        return `${h}:${mm}`;
+      }
       const clean = t.replace(/\s+/g, " ").trim();
       if (/^\d{1,2}:\d{2}\s*[-~]\s*\d{1,2}:\d{2}$/.test(clean)) return clean;
     }
@@ -156,7 +160,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const shopsIndex = { ready: false, byId: new Map() };
   async function ensureShopsIndex() {
     if (shopsIndex.ready) return;
-    const json = await httpGetJSON(`/api/shops`);
+    const json = await httpGetJSON(`${API_BASE}/api/shops`);
     const arr = Array.isArray(json?.result) ? json.result : [];
     arr.forEach((raw) => {
       const d = formatShop(raw);
@@ -172,7 +176,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     await ensureShopsIndex();
     if (shopsIndex.byId.has(id)) return shopsIndex.byId.get(id);
     if (shopCacheById.has(id)) return shopCacheById.get(id);
-    const json = await httpGetJSON(`/api/shops/${encodeURIComponent(id)}`);
+    const json = await httpGetJSON(
+      `${API_BASE}/api/shops/${encodeURIComponent(id)}`
+    );
     const detail = formatShop(json?.result);
     if (detail) {
       shopsIndex.byId.set(id, detail);
@@ -184,7 +190,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (shopId == null) return [];
     if (menuCacheByShopId.has(shopId)) return menuCacheByShopId.get(shopId);
     const json = await httpGetJSON(
-      `/api/shops/${encodeURIComponent(shopId)}/menus`
+      `${API_BASE}/api/shops/${encodeURIComponent(shopId)}/menus`
     );
     const list = Array.isArray(json?.result?.menuPreviewList)
       ? json.result.menuPreviewList
@@ -196,7 +202,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 코스 추천 API — 백 응답 그대로 사용(정렬/재배치 없음)
   async function fetchCourses() {
     try {
-      const res = await fetch(`/api/courses`, {
+      const res = await fetch(`${API_BASE}/api/courses`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -264,7 +270,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     location.href = url.href;
   }
 
-  // 렌더
+  // 렌더 — 코스 배열/순서: 백 그대로, 코스명: title 그대로, signatureMenu만
   function renderCourses(courses) {
     const frag = document.createDocumentFragment();
 
@@ -273,13 +279,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       const labelEl = rowEl.querySelector(".course-label");
       const flowEl = rowEl.querySelector(".flow");
 
+      // 코스명 그대로
       const title = c.title || `코스${idx + 1}`;
       labelEl.textContent = title;
 
+      // 스텝
       const shops = Array.isArray(c.shops) ? c.shops : [];
       shops.forEach((s, i) => {
         const stepEl = useTpl("tpl-step");
-        const sig = (s.signatureMenu || "").trim();
+        const sig = (s.signatureMenu || "").trim(); // signatureMenu만
         const nameToShow = s.name || s._shop?.title || "";
         stepEl.querySelector(".name").textContent = nameToShow || "";
         stepEl.querySelector(".desc").textContent = sig || "-";
@@ -287,6 +295,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (i < shops.length - 1) flowEl.appendChild(useTpl("tpl-arrow"));
       });
 
+      // 버튼 인덱스 부여
       rowEl
         .querySelectorAll("[data-go-map], [data-open-modal]")
         .forEach((btn) => (btn.dataset.courseIndex = String(idx)));
@@ -316,7 +325,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           th.style.backgroundSize = "cover";
           th.style.backgroundPosition = "center";
         }
-        const sig = (s.signatureMenu || "").trim();
+        const sig = (s.signatureMenu || "").trim(); // signatureMenu만
         const nameToShow = s.name || s._shop?.title || "";
         const addrToShow = s.location || s._shop?.addr || "";
         poiEl.querySelector(".poi-title").textContent = `${nameToShow} - ${
