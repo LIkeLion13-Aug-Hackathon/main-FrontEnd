@@ -1,3 +1,9 @@
 {
-  "rewrites": [{ "source": "/", "destination": "/start-page/start-page.html" }]
+  "rewrites": [
+    { "source": "/", "destination": "/start-page/start-page.html" },
+    {
+      "source": "/api/(.*)",
+      "destination": "http://54.180.163.161:8080/api/$1"
+    }
+  ]
 }
