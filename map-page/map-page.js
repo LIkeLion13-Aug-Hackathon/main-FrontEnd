@@ -291,7 +291,10 @@ function renderCourseButtons() {
   headerContainer.innerHTML = "";
 
   const urlParams = new URLSearchParams(window.location.search);
-  const marketName = urlParams.get("marketName") || "선택된 시장";
+  const marketName =
+    localStorage.getItem("selectedMarketName") ||
+    urlParams.get("marketName") ||
+    "선택된 시장";
 
   const specialBtn = document.createElement("button");
   specialBtn.className = "course-btn special-btn";

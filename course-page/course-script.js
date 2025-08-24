@@ -117,6 +117,42 @@ document.addEventListener("DOMContentLoaded", async () => {
     return `${range}${holidayLine}`.trim();
   }
 
+  // 시장명 결정(우선순위: bodyData → course.marketName → title에서 추출)
+  function resolveMarketName(course) {
+    const byBody = MARKET_KO?.[bodyData?.market];
+    if (byBody) return byBody;
+    if (course?.marketName) return String(course.marketName).trim();
+    const t = (course?.title || "").trim();
+    const m = t.match(/(통인|망원|남대문)(시장)?/);
+    return m ? `${m[1]}시장` : "";
+  }
+
+  // 지도 페이지에 필요한 최소 정보만 남기기(용량 절감)
+  function sanitizeCourseForMap(course) {
+    const shops = Array.isArray(course?.shops) ? course.shops : [];
+    const slimShops = shops.map((s) => {
+      const name = s.name || s._shop?.title || "";
+      // 좌표 보강: xPos/yPos 없으면 _shop 또는 lat/lng에서 채움
+      const x = s.xPos ?? s.lng ?? s._shop?.xPos ?? s._shop?.lng ?? null;
+      const y = s.yPos ?? s.lat ?? s._shop?.yPos ?? s._shop?.lat ?? null;
+      return {
+        shopId: s.shopId ?? s.id ?? null,
+        name,
+        xPos: x,
+        yPos: y,
+        location: s.location || s._shop?.addr || "",
+        signatureMenu: s.signatureMenu || "",
+      };
+    });
+
+    return {
+      title: course?.title || "",
+      marketName: resolveMarketName(course) || "",
+      shops: slimShops,
+      _savedAt: Date.now(),
+    };
+  }
+
   // 공통 GET
   async function httpGetJSON(url) {
     const res = await fetch(url, { headers: { Accept: "application/json" } });
@@ -256,19 +292,49 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 코스 → map-page 연결: 선택 코스 저장 + 이동
   function saveSelectedCourse(course) {
     try {
-      localStorage.setItem("selectedCourse", JSON.stringify(course));
+      const clean = sanitizeCourseForMap(course);
+      localStorage.setItem("selectedCourse", JSON.stringify(clean));
     } catch (e) {
-      console.warn("[map] localStorage 저장 실패:", e);
+      console.warn("[map] localStorage 저장 실패, sessionStorage로 폴백:", e);
+      try {
+        const clean = sanitizeCourseForMap(course);
+        sessionStorage.setItem("selectedCourse", JSON.stringify(clean));
+      } catch {}
     }
   }
+
+  // =========================
+  // 3번 반영: 이동 함수(중복 제거 + 더블클릭 방지 + 시장명 일관 저장)
+  // =========================
+  let __goingToMap = false; // 더블클릭/중복 이동 방지
+
   function goToMapWithCourse(course) {
-    if (!course) return;
+    if (!course || __goingToMap) return;
+
+    // 빈 코스 방지
+    if (!Array.isArray(course.shops) || course.shops.length === 0) {
+      alert("이 코스에 가게 정보가 없어 지도로 이동할 수 없어요.");
+      return;
+    }
+
+    __goingToMap = true;
+
+    // 시장명 결정(일관 처리)
+    const marketKo = resolveMarketName(course);
+    if (marketKo) {
+      // URL 쿼리 + 로컬 스토리지 모두 기록
+      localStorage.setItem("selectedMarketName", marketKo);
+    }
+
+    // 선택 코스 저장(슬림)
     saveSelectedCourse(course);
+
+    // 지도 페이지로 이동
     const url = new URL("../map-page/map-page.html", location.href); // 형제 폴더
-    const marketKo = MARKET_KO[bodyData.market];
     if (marketKo) url.searchParams.set("marketName", marketKo);
     location.href = url.href;
   }
+  // =========================
 
   // 렌더 — 코스 배열/순서: 백 그대로, 코스명: title 그대로, signatureMenu만
   function renderCourses(courses) {

@@ -161,11 +161,14 @@ body {
   text-align: center;
   color: #777777;
   margin: 0;
+  position: relative;
+  z-index: 1000;
 }
 .random-course a {
   color: #ff914d;
   font-weight: bold;
   text-decoration: none;
+  pointer-events: auto;
 }
 
 /* 스텝별 하단 마진 */

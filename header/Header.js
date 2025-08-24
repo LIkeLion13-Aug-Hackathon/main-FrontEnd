@@ -1,4 +1,26 @@
 export function loadHeader(path = "../header/Header.html") {
+  // ===== 공통 헬퍼 =====
+  function parseJSONSafe(s, fb = null) {
+    try {
+      return s ? JSON.parse(s) : fb;
+    } catch {
+      return fb;
+    }
+  }
+  function resolveMarketNameFrom(course, fallback = "") {
+    if (!course) return fallback;
+    if (course.marketName) return String(course.marketName).trim(); // 코스 객체에 있으면 우선
+    const saved = localStorage.getItem("selectedMarketName"); // 과거 저장값
+    if (saved) return saved;
+    const t = (course.title || "").trim(); // 타이틀에서 추출
+    const m = t.match(/(통인|망원|남대문)(시장)?/);
+    return m ? `${m[1]}시장` : fallback;
+  }
+  function isValidCourse(c) {
+    return c && Array.isArray(c.shops) && c.shops.length > 0;
+  }
+  // =====================
+
   document.addEventListener("DOMContentLoaded", () => {
     const headerEl = document.getElementById("header");
     if (!headerEl) {
@@ -9,8 +31,8 @@ export function loadHeader(path = "../header/Header.html") {
         const header = document.getElementById("header");
         if (!header) return;
 
-        // 형제 폴더 기준(map-page)으로 절대 URL 구성
-        const mapUrl = new URL("../map-page/map-page.html", location.href).href;
+        const mapUrlBase = new URL("../map-page/map-page.html", location.href)
+          .href;
 
         // 버튼 탐색: data-view-map, id, 텍스트 등 다양하게 대응
         let btn =
@@ -22,15 +44,30 @@ export function loadHeader(path = "../header/Header.html") {
 
         if (!btn) return;
 
-        // a 태그면 href도 세팅(자바스크립트 비활성 시 대비)
-        if (btn.tagName === "A") btn.setAttribute("href", mapUrl);
+        if (btn.tagName === "A") btn.setAttribute("href", mapUrlBase);
 
+        // 조건부 이동: 코스 있으면 코스 지도, 없으면 빈 지도
         btn.addEventListener("click", (e) => {
           e.preventDefault();
-          // 코스 선택 비우기 → map-page 이동
-          localStorage.removeItem("selectedCourse");
-          // marketName은 비워서 “코스 없는 지도”가 뜨게
-          location.href = mapUrl;
+
+          const mapUrl = new URL("../map-page/map-page.html", location.href);
+          const raw = localStorage.getItem("selectedCourse");
+          const course = parseJSONSafe(raw);
+
+          if (isValidCourse(course)) {
+            // 코스 있는 경우 → 해당 코스 지도
+            const marketName = resolveMarketNameFrom(course, "");
+            if (marketName) {
+              localStorage.setItem("selectedMarketName", marketName);
+              mapUrl.searchParams.set("marketName", marketName);
+            }
+            location.href = mapUrl.href;
+          } else {
+            // 코스 없는 경우 → 빈 지도(완전 초기화)
+            localStorage.removeItem("selectedCourse");
+            localStorage.removeItem("selectedMarketName");
+            location.href = mapUrl.href; // 쿼리 없이
+          }
         });
       }
       return;
@@ -48,30 +85,44 @@ export function loadHeader(path = "../header/Header.html") {
         const button2 = document.getElementsByClassName("btn2");
         const logo = document.getElementsByClassName("logo");
 
+        // 코스 설문으로 이동
         Array.from(button1).forEach((btn) => {
           btn.addEventListener("click", () => {
             window.location.href = "../preference-page/preference-page.html";
           });
         });
 
-        // view map(= btn2) → 항상 "선택 전" 지도 열기
+        // view map(= btn2) → 코스 있으면 코스 지도, 없으면 빈 지도
         Array.from(button2).forEach((btn) => {
-          const mapUrl = new URL("../map-page/map-page.html", location.href)
+          const mapUrlBase = new URL("../map-page/map-page.html", location.href)
             .href;
-
-          // a 태그라면 href도 안전하게 세팅(비자바스크립트 환경 대비)
-          if (btn.tagName === "A") btn.setAttribute("href", mapUrl);
+          if (btn.tagName === "A") btn.setAttribute("href", mapUrlBase);
 
           btn.addEventListener("click", (e) => {
             e.preventDefault();
-            // 선택 상태 초기화
-            localStorage.removeItem("selectedCourse");
-            localStorage.removeItem("selectedMarketName");
-            // 쿼리 없이 지도 페이지로 이동 → map-page의 "코스 없음" 분기 진입
-            window.location.href = mapUrl;
+
+            const mapUrl = new URL("../map-page/map-page.html", location.href);
+            const raw = localStorage.getItem("selectedCourse");
+            const course = parseJSONSafe(raw);
+
+            if (isValidCourse(course)) {
+              // 코스 있는 경우 → 해당 코스 지도
+              const marketName = resolveMarketNameFrom(course, "");
+              if (marketName) {
+                localStorage.setItem("selectedMarketName", marketName);
+                mapUrl.searchParams.set("marketName", marketName);
+              }
+              window.location.href = mapUrl.href;
+            } else {
+              // 코스 없는 경우 → 빈 지도(완전 초기화)
+              localStorage.removeItem("selectedCourse");
+              localStorage.removeItem("selectedMarketName");
+              window.location.href = mapUrl.href; // 쿼리 없이
+            }
           });
         });
 
+        // 로고 → 시작 페이지
         Array.from(logo).forEach((img) => {
           img.addEventListener("click", () => {
             window.location.href = "../start-page/start-page.html";
