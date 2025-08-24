@@ -1,6 +1,6 @@
 // course-script.js
 document.addEventListener("DOMContentLoaded", async () => {
-  const API_BASE = window.API_BASE || "http://54.180.163.161:8080";
+  const API_BASE = ""; // 같은 오리진(/api) 프록시 사용
 
   const courseList = document.getElementById("courseList");
   const modal = document.getElementById("courseModal");
@@ -23,9 +23,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 쿼리 → enum (현재 선택지 3개 기준)
   const params = new URLSearchParams(location.search);
   const norm = {};
-  for (const [k, v] of params.entries()) {
+  for (const [k, v] of params.entries())
     norm[k.trim().toLowerCase()] = String(v).trim().toUpperCase();
-  }
   const ALLOWED = {
     market: ["TONGIN", "MANGWON", "NAMDAEMUN"],
     humanlevel: ["SOLO", "COUPLE", "FAMILY"],
@@ -63,11 +62,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     if (typeof t === "string") {
       const m = t.match(/(\d{1,2})\s*[:시]\s*(\d{1,2})?/);
-      if (m) {
-        const h = to2(Number(m[1]));
-        const mm = to2(Number(m[2] ?? 0));
-        return `${h}:${mm}`;
-      }
+      if (m) return `${to2(Number(m[1]))}:${to2(Number(m[2] ?? 0))}`;
       const clean = t.replace(/\s+/g, " ").trim();
       if (/^\d{1,2}:\d{2}\s*[-~]\s*\d{1,2}:\d{2}$/.test(clean)) return clean;
     }
@@ -161,7 +156,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const shopsIndex = { ready: false, byId: new Map() };
   async function ensureShopsIndex() {
     if (shopsIndex.ready) return;
-    const json = await httpGetJSON(`${API_BASE}/api/shops`);
+    const json = await httpGetJSON(`/api/shops`);
     const arr = Array.isArray(json?.result) ? json.result : [];
     arr.forEach((raw) => {
       const d = formatShop(raw);
@@ -177,9 +172,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await ensureShopsIndex();
     if (shopsIndex.byId.has(id)) return shopsIndex.byId.get(id);
     if (shopCacheById.has(id)) return shopCacheById.get(id);
-    const json = await httpGetJSON(
-      `${API_BASE}/api/shops/${encodeURIComponent(id)}`
-    );
+    const json = await httpGetJSON(`/api/shops/${encodeURIComponent(id)}`);
     const detail = formatShop(json?.result);
     if (detail) {
       shopsIndex.byId.set(id, detail);
@@ -191,7 +184,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (shopId == null) return [];
     if (menuCacheByShopId.has(shopId)) return menuCacheByShopId.get(shopId);
     const json = await httpGetJSON(
-      `${API_BASE}/api/shops/${encodeURIComponent(shopId)}/menus`
+      `/api/shops/${encodeURIComponent(shopId)}/menus`
     );
     const list = Array.isArray(json?.result?.menuPreviewList)
       ? json.result.menuPreviewList
@@ -203,7 +196,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 코스 추천 API — 백 응답 그대로 사용(정렬/재배치 없음)
   async function fetchCourses() {
     try {
-      const res = await fetch(`${API_BASE}/api/courses`, {
+      const res = await fetch(`/api/courses`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -271,7 +264,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     location.href = url.href;
   }
 
-  // 렌더 — 코스 배열/순서: 백 그대로, 코스명: title 그대로, signatureMenu만
+  // 렌더
   function renderCourses(courses) {
     const frag = document.createDocumentFragment();
 
@@ -280,15 +273,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       const labelEl = rowEl.querySelector(".course-label");
       const flowEl = rowEl.querySelector(".flow");
 
-      // 코스명 그대로
       const title = c.title || `코스${idx + 1}`;
       labelEl.textContent = title;
 
-      // 스텝
       const shops = Array.isArray(c.shops) ? c.shops : [];
       shops.forEach((s, i) => {
         const stepEl = useTpl("tpl-step");
-        const sig = (s.signatureMenu || "").trim(); // signatureMenu만
+        const sig = (s.signatureMenu || "").trim();
         const nameToShow = s.name || s._shop?.title || "";
         stepEl.querySelector(".name").textContent = nameToShow || "";
         stepEl.querySelector(".desc").textContent = sig || "-";
@@ -296,7 +287,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (i < shops.length - 1) flowEl.appendChild(useTpl("tpl-arrow"));
       });
 
-      // 버튼에 인덱스 부여 (지도/모달)
       rowEl
         .querySelectorAll("[data-go-map], [data-open-modal]")
         .forEach((btn) => (btn.dataset.courseIndex = String(idx)));
@@ -326,12 +316,13 @@ document.addEventListener("DOMContentLoaded", async () => {
           th.style.backgroundSize = "cover";
           th.style.backgroundPosition = "center";
         }
-        const sig = (s.signatureMenu || "").trim(); // signatureMenu만
-        poiEl.querySelector(".poi-title").textContent = `${
-          s._shop?.title || s.name || ""
-        } - ${sig || "-"}`;
-        poiEl.querySelector(".poi-addr").textContent =
-          s._shop?.addr || s.location || "";
+        const sig = (s.signatureMenu || "").trim();
+        const nameToShow = s.name || s._shop?.title || "";
+        const addrToShow = s.location || s._shop?.addr || "";
+        poiEl.querySelector(".poi-title").textContent = `${nameToShow} - ${
+          sig || "-"
+        }`;
+        poiEl.querySelector(".poi-addr").textContent = addrToShow;
         poiEl.querySelector(".poi-time").textContent =
           buildTimeLine(s._shop || s) || "";
         frag.appendChild(poiEl);
@@ -361,7 +352,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     alert(msg);
   }
 
-  // 로딩 오버레이(없어도 생성해서 확실히 표시)
+  // 로딩 오버레이(없어도 생성)
   function ensureLoading() {
     if (loadingEl && document.body.contains(loadingEl)) return;
     loadingEl = document.createElement("div");
@@ -411,9 +402,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (course) goToMapWithCourse(course);
       return;
     }
-    // 지도 이동(모달 버튼)
-    const goModalBtn = e.target.closest("[data-go-map-modal]");
-    if (goModalBtn) {
+    // 지도 이동(모달 버튼) — 모달 내부 버튼이 2개여도 전부 잡음
+    const goModalBtnAny = e.target.closest(
+      ".modal [data-go-map-modal], .modal [data-go-map], .modal .btn-go-map"
+    );
+    if (goModalBtnAny) {
       if (currentCourse) {
         goToMapWithCourse(currentCourse);
       } else {
