@@ -23,9 +23,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 쿼리 → enum (현재 선택지 3개 기준)
   const params = new URLSearchParams(location.search);
   const norm = {};
-  for (const [k, v] of params.entries())
+  for (const [k, v] of params.entries()) {
     norm[k.trim().toLowerCase()] = String(v).trim().toUpperCase();
-
+  }
   const ALLOWED = {
     market: ["TONGIN", "MANGWON", "NAMDAEMUN"],
     humanlevel: ["SOLO", "COUPLE", "FAMILY"],
@@ -34,7 +34,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
   const pickEnum = (key, fb) =>
     ALLOWED[key]?.includes(norm[key]) ? norm[key] : fb;
-
   const bodyData = {
     market: pickEnum("market", "TONGIN"),
     humanLevel: pickEnum("humanlevel", "SOLO"),
@@ -59,11 +58,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   const to2 = (n) => String(n ?? 0).padStart(2, "0");
   function parseTimeToHHmm(t) {
     if (!t) return "";
-    if (typeof t === "object" && typeof t.hour === "number")
+    if (typeof t === "object" && typeof t.hour === "number") {
       return `${to2(t.hour)}:${to2(t.minute ?? 0)}`;
+    }
     if (typeof t === "string") {
       const m = t.match(/(\d{1,2})\s*[:시]\s*(\d{1,2})?/);
-      if (m) return `${to2(Number(m[1]))}:${to2(Number(m[2] ?? 0))}`;
+      if (m) {
+        const h = to2(Number(m[1]));
+        const mm = to2(Number(m[2] ?? 0));
+        return `${h}:${mm}`;
+      }
       const clean = t.replace(/\s+/g, " ").trim();
       if (/^\d{1,2}:\d{2}\s*[-~]\s*\d{1,2}:\d{2}$/.test(clean)) return clean;
     }
@@ -76,13 +80,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     const holidays = Array.isArray(obj.holidays)
       ? obj.holidays.filter(Boolean).join(", ")
       : obj.holidays || "";
+
     let range = "";
-    const o = parseTimeToHHmm(open),
-      c = parseTimeToHHmm(close);
-    if (o && c && !o.includes("-") && !c.includes("-")) range = `${o} - ${c}`;
-    else if (o && !c) range = o;
-    else if (!o && c) range = c;
-    else if (!o && !c) {
+    const openStr = parseTimeToHHmm(open);
+    const closeStr = parseTimeToHHmm(close);
+
+    if (
+      openStr &&
+      closeStr &&
+      !openStr.includes("-") &&
+      !closeStr.includes("-")
+    ) {
+      range = `${openStr} - ${closeStr}`;
+    } else if (openStr && !openStr.includes("-") && !closeStr) {
+      range = openStr;
+    } else if (!openStr && closeStr && !closeStr.includes("-")) {
+      range = closeStr;
+    } else if (!openStr && !closeStr) {
       const both =
         typeof open === "string"
           ? open
@@ -90,12 +104,16 @@ document.addEventListener("DOMContentLoaded", async () => {
           ? close
           : "";
       const clean = (both || "").replace(/\s+/g, " ").trim();
-      if (/^\d{1,2}:\d{2}\s*[-~]\s*\d{1,2}:\d{2}$/.test(clean))
+      if (/^\d{1,2}:\d{2}\s*[-~]\s*\d{1,2}:\d{2}$/.test(clean)) {
         range = clean.replace("~", " - ");
+      } else {
+        range = "";
+      }
     } else {
-      const cand = [o, c].find((v) => v.includes("-")) || "";
+      const cand = [openStr, closeStr].find((v) => v.includes("-")) || "";
       range = cand.replace("~", " - ");
     }
+
     const holidayLine = holidays ? ` / 휴무: ${holidays}` : "";
     return `${range}${holidayLine}`.trim();
   }
@@ -139,7 +157,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
   }
 
-  // 인덱스/캐시 + 상세 조회(오직 id 기반)
+  // Shops 인덱스/캐시
   const shopsIndex = { ready: false, byId: new Map() };
   async function ensureShopsIndex() {
     if (shopsIndex.ready) return;
@@ -169,8 +187,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     return detail;
   }
-
-  // 누락됐던 함수 복구(메뉴 미리보기 조회 캐시)
   async function getMenusByShopIdCached(shopId) {
     if (shopId == null) return [];
     if (menuCacheByShopId.has(shopId)) return menuCacheByShopId.get(shopId);
@@ -186,27 +202,35 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // 코스 추천 API — 백 응답 그대로 사용(정렬/재배치 없음)
   async function fetchCourses() {
-    const res = await fetch(`${API_BASE}/api/courses`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "Cache-Control": "no-store",
-      },
-      body: JSON.stringify(bodyData),
-    });
-    const text = await res.text();
-    let data = null;
     try {
-      data = text ? JSON.parse(text) : null;
-    } catch (e) {
-      console.warn("[/api/courses JSON parse fail]", e, text);
+      const res = await fetch(`${API_BASE}/api/courses`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "Cache-Control": "no-store",
+        },
+        body: JSON.stringify(bodyData),
+      });
+      const text = await res.text();
+      let data = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch (e) {
+        console.warn("[/api/courses JSON parse fail]", e, text);
+      }
+      if (!res.ok || data?.isSuccess === false) {
+        const msg = data?.message || `코스 추천 서버 오류 (${res.status})`;
+        throw new Error(msg);
+      }
+      return Array.isArray(data?.result?.courses) ? data.result.courses : [];
+    } catch (err) {
+      console.error("courses fetch 실패:", err);
+      showToast(
+        "코스를 불러오는 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요 🙏"
+      );
+      return [];
     }
-    if (!res.ok || data?.isSuccess === false) {
-      const msg = data?.message || `코스 추천 서버 오류 (${res.status})`;
-      throw new Error(msg);
-    }
-    return Array.isArray(data?.result?.courses) ? data.result.courses : [];
   }
 
   // 보강 — shopId 있을 때만 상세/메뉴 조회(이름 매칭 제거)
@@ -219,7 +243,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           (async () => {
             let detail = null;
             if (s.shopId != null) detail = await getShopByIdSmart(s.shopId);
-            s._shop = detail || null;
+            s._shop = detail;
             s._menus =
               detail?.id != null ? await getMenusByShopIdCached(detail.id) : [];
           })()
@@ -230,16 +254,37 @@ document.addEventListener("DOMContentLoaded", async () => {
     return courses;
   }
 
-  // 렌더 — 순서/구성 불변, 코스명=title 그대로, 대표메뉴=signatureMenu만
+  // 코스 → map-page 연결: 선택 코스 저장 + 이동
+  function saveSelectedCourse(course) {
+    try {
+      localStorage.setItem("selectedCourse", JSON.stringify(course));
+    } catch (e) {
+      console.warn("[map] localStorage 저장 실패:", e);
+    }
+  }
+  function goToMapWithCourse(course) {
+    if (!course) return;
+    saveSelectedCourse(course);
+    const url = new URL("../map-page/map-page.html", location.href); // 형제 폴더
+    const marketKo = MARKET_KO[bodyData.market];
+    if (marketKo) url.searchParams.set("marketName", marketKo);
+    location.href = url.href;
+  }
+
+  // 렌더 — 코스 배열/순서: 백 그대로, 코스명: title 그대로, signatureMenu만
   function renderCourses(courses) {
     const frag = document.createDocumentFragment();
+
     (Array.isArray(courses) ? courses : []).forEach((c, idx) => {
       const rowEl = useTpl("tpl-course-row");
       const labelEl = rowEl.querySelector(".course-label");
       const flowEl = rowEl.querySelector(".flow");
 
-      labelEl.textContent = c.title || `코스${idx + 1}`;
+      // 코스명 그대로
+      const title = c.title || `코스${idx + 1}`;
+      labelEl.textContent = title;
 
+      // 스텝
       const shops = Array.isArray(c.shops) ? c.shops : [];
       shops.forEach((s, i) => {
         const stepEl = useTpl("tpl-step");
@@ -251,6 +296,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (i < shops.length - 1) flowEl.appendChild(useTpl("tpl-arrow"));
       });
 
+      // 버튼에 인덱스 부여 (지도/모달)
       rowEl
         .querySelectorAll("[data-go-map], [data-open-modal]")
         .forEach((btn) => (btn.dataset.courseIndex = String(idx)));
@@ -262,7 +308,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     coursesCache = Array.isArray(courses) ? courses : [];
   }
 
-  // 모달 — 표시값도 백 응답 우선
+  // 모달
   function openModal(course, openerBtn) {
     if (!modal) return;
     currentCourse = course;
@@ -272,21 +318,20 @@ document.addEventListener("DOMContentLoaded", async () => {
       const frag = document.createDocumentFragment();
       (course.shops || []).forEach((s) => {
         const poiEl = useTpl("tpl-modal-poi");
-        const bg = s.imageUrl || s._shop?.imageUrl || "";
-        if (bg) {
+        if (s.imageUrl || s._shop?.imageUrl) {
           const th = poiEl.querySelector(".thumb");
-          th.style.backgroundImage = `url('${bg}')`;
+          th.style.backgroundImage = `url('${
+            s.imageUrl || s._shop?.imageUrl
+          }')`;
           th.style.backgroundSize = "cover";
           th.style.backgroundPosition = "center";
         }
-        const sig = (s.signatureMenu || "").trim();
-        const nameToShow = s.name || s._shop?.title || "";
-        const addrToShow = s.location || s._shop?.addr || "";
-
-        poiEl.querySelector(".poi-title").textContent = `${nameToShow} - ${
-          sig || "-"
-        }`;
-        poiEl.querySelector(".poi-addr").textContent = addrToShow;
+        const sig = (s.signatureMenu || "").trim(); // signatureMenu만
+        poiEl.querySelector(".poi-title").textContent = `${
+          s._shop?.title || s.name || ""
+        } - ${sig || "-"}`;
+        poiEl.querySelector(".poi-addr").textContent =
+          s._shop?.addr || s.location || "";
         poiEl.querySelector(".poi-time").textContent =
           buildTimeLine(s._shop || s) || "";
         frag.appendChild(poiEl);
@@ -312,9 +357,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     lastFocused = null;
   }
 
-  function goToMap(courseTitle) {
-    const url = `./map.html?course=${encodeURIComponent(courseTitle)}`;
-    window.location.href = url;
+  function showToast(msg) {
+    alert(msg);
   }
 
   // 로딩 오버레이(없어도 생성해서 확실히 표시)
@@ -326,22 +370,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     loadingEl.style.cssText =
       "position:fixed;inset:0;background:#fff;display:grid;place-items:center;z-index:9999;";
     const inner = document.createElement("div");
-    inner.className = "course-loading-inner";
     inner.style.cssText =
       "display:flex;flex-direction:column;align-items:center;gap:10px;";
     const ico = document.createElement("span");
-    ico.className = "course-loading-ico";
     ico.style.cssText =
       "width:28px;height:28px;background:url('icon/refresh_icon.png') center/contain no-repeat;animation:spin .9s linear infinite;";
     const txt = document.createElement("div");
-    txt.className = "course-loading-text";
     txt.textContent = "로딩 중입니다...";
     txt.style.cssText = "color:#362e2e;font-weight:700;";
     inner.appendChild(ico);
     inner.appendChild(txt);
     loadingEl.appendChild(inner);
     document.body.appendChild(loadingEl);
-    // keyframes(없을 때 대비)
     const style = document.createElement("style");
     style.textContent = "@keyframes spin{to{transform:rotate(360deg)}}";
     document.head.appendChild(style);
@@ -354,30 +394,38 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (loadingEl) loadingEl.style.display = "none";
   }
 
-  // 이벤트
+  // 클릭 이벤트
   document.addEventListener("click", (e) => {
+    // 모달 닫기
     if (e.target === modal || e.target.closest(".modal-close")) {
       if (modal?.classList.contains("is-open")) {
         closeModal();
         return;
       }
     }
+    // 지도 이동(카드 버튼)
     const goMapBtn = e.target.closest("[data-go-map]");
     if (goMapBtn) {
       const idx = parseInt(goMapBtn.dataset.courseIndex || "-1", 10);
-      const title =
-        document.querySelectorAll(".course-label")[idx]?.textContent?.trim() ||
-        "";
-      goToMap(title);
+      const course = coursesCache[idx];
+      if (course) goToMapWithCourse(course);
       return;
     }
+    // 지도 이동(모달 버튼)
     const goModalBtn = e.target.closest("[data-go-map-modal]");
     if (goModalBtn) {
-      const title =
-        currentCourse?.title || modalTitleEl?.textContent?.trim() || "";
-      goToMap(title);
+      if (currentCourse) {
+        goToMapWithCourse(currentCourse);
+      } else {
+        const title = modalTitleEl?.textContent?.trim() || "";
+        const course = (coursesCache || []).find(
+          (c) => (c.title || "").trim() === title
+        );
+        if (course) goToMapWithCourse(course);
+      }
       return;
     }
+    // 모달 열기
     const openBtn = e.target.closest("[data-open-modal]");
     if (openBtn) {
       const idx = parseInt(openBtn.dataset.courseIndex || "-1", 10);
@@ -386,6 +434,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
+    // 카드 토글
     const row = e.target.closest(".course-row");
     if (!row) return;
     if (e.target.closest(".course-actions")) return;
@@ -409,6 +458,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     openRow = willOpen ? row : null;
   });
 
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && modal?.classList.contains("is-open"))
+      closeModal();
+  });
+
   // 실행 — 로딩 표시 → 백 응답 그대로 보강 → 렌더 → 로딩 숨김
   try {
     showCourseLoading();
@@ -425,8 +479,4 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   if (modal) modal.style.display = "none";
-
-  function showToast(msg) {
-    alert(msg);
-  }
 });

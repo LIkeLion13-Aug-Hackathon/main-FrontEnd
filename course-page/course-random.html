@@ -23,10 +23,17 @@
       <div id="courseList"></div>
 
       <div class="modal-overlay" id="courseModal">
-        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div
+          class="modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modalTitle"
+        >
           <div class="modal-header">
             <h3 id="modalTitle">코스 상세</h3>
-            <button type="button" class="modal-close" aria-label="닫기">×</button>
+            <button type="button" class="modal-close" aria-label="닫기">
+              ×
+            </button>
           </div>
           <div class="modal-body"></div>
           <div class="modal-footer">
@@ -38,13 +45,22 @@
       </div>
 
       <template id="tpl-course-row">
-        <section class="course-row" role="button" tabindex="0" aria-expanded="false">
+        <section
+          class="course-row"
+          role="button"
+          tabindex="0"
+          aria-expanded="false"
+        >
           <div class="course-label"></div>
           <div class="flow"></div>
           <div class="course-actions" aria-hidden="true">
             <div class="course-actions-inner">
-              <button type="button" class="btn btn-primary" data-go-map">이 코스 지도로 보기</button>
-              <button type="button" class="btn btn-outline" data-open-modal>코스 정보 자세히 보기</button>
+              <button type="button" class="btn btn-primary" data-go-map>
+                이 코스 지도로 보기
+              </button>
+              <button type="button" class="btn btn-outline" data-open-modal>
+                코스 정보 자세히 보기
+              </button>
             </div>
           </div>
         </section>
@@ -62,15 +78,26 @@
         </div>
       </template>
 
-      <template id="tpl-arrow"><div class="arrow" aria-hidden="true">→</div></template>
+      <template id="tpl-arrow"
+        ><div class="arrow" aria-hidden="true">→</div></template
+      >
 
       <template id="tpl-modal-poi">
         <div class="poi">
           <div class="thumb"></div>
           <div class="poi-list">
-            <div class="poi-row"><span class="poi-ico ico-title" aria-hidden="true"></span><div class="poi-title"></div></div>
-            <div class="poi-row"><span class="poi-ico ico-location" aria-hidden="true"></span><div class="poi-sub poi-addr"></div></div>
-            <div class="poi-row"><span class="poi-ico ico-time" aria-hidden="true"></span><div class="poi-sub poi-time"></div></div>
+            <div class="poi-row">
+              <span class="poi-ico ico-title" aria-hidden="true"></span>
+              <div class="poi-title"></div>
+            </div>
+            <div class="poi-row">
+              <span class="poi-ico ico-location" aria-hidden="true"></span>
+              <div class="poi-sub poi-addr"></div>
+            </div>
+            <div class="poi-row">
+              <span class="poi-ico ico-time" aria-hidden="true"></span>
+              <div class="poi-sub poi-time"></div>
+            </div>
           </div>
         </div>
       </template>

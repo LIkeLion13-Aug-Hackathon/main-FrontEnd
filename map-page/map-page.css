@@ -34,7 +34,7 @@ body {
   top: 84px;
   margin-left: 7%;
   display: flex;
-  flex-wrap: wrap; /* 화면 줄이면 자동 줄바꿈 */
+  flex-wrap: wrap;
   background: #e6ece7;
   border-radius: 0.8rem;
   border: 1px solid rgba(0, 0, 0, 0.05);
@@ -66,6 +66,10 @@ body {
   margin-right: 13px;
   margin-left: 10px;
 }
+.course-btn:hover {
+  background: #8daa91;
+  color: #fff;
+}
 
 /* 첫 번째 버튼(시장) */
 .course-btn.special-btn {
@@ -80,14 +84,8 @@ body {
   margin-right: 20px;
   width: 200px;
 }
-
 .course-btn.special-btn:hover {
   background: #ff914d;
-  color: #fff;
-}
-
-.course-btn:hover {
-  background: #8daa91;
   color: #fff;
 }
 
@@ -95,18 +93,17 @@ body {
 .pin-icon {
   width: 12px;
   height: 20px;
-  margin-right: 5px;
+  margin-right: 9px; /* ← 아이콘 ↔ 텍스트 간격 */
   margin-bottom: 5px;
   vertical-align: middle;
 }
-
 .arrow-icon {
   width: 17px;
   height: 17px;
   margin-top: 20px;
 }
 
-/* 기본 라벨 */
+/* 마커 라벨 */
 .marker-label-container {
   position: absolute;
   display: flex;
@@ -122,16 +119,13 @@ body {
   min-width: 130px;
   bottom: -20px;
 }
-
-/* 꼬리 기본 */
+/* 꼬리 */
 .marker-label-container::after {
   content: "";
   position: absolute;
   width: 0;
   height: 0;
 }
-
-/* 위쪽(top) */
 .marker-label-container.top::after {
   bottom: -10px;
   left: 50%;
@@ -140,8 +134,6 @@ body {
   border-right: 8px solid transparent;
   border-top: 10px solid #6b4f4f;
 }
-
-/* 아래쪽(bottom) */
 .marker-label-container.bottom::after {
   top: -10px;
   left: 50%;
@@ -150,8 +142,6 @@ body {
   border-right: 8px solid transparent;
   border-bottom: 10px solid #6b4f4f;
 }
-
-/* 왼쪽(left) */
 .marker-label-container.left::after {
   top: 50%;
   right: -10px;
@@ -160,24 +150,14 @@ body {
   border-bottom: 8px solid transparent;
   border-left: 10px solid #6b4f4f;
 }
-
-/* 오른쪽(right) */
-/* 오른쪽(right) */
 .marker-label-container.right::after {
   top: 50%;
   left: -4px;
-  transform: rotate(60deg); /* Y축 중앙 정렬 유지 */
+  transform: rotate(60deg);
   border-top: 8px solid transparent;
   border-bottom: 13px solid transparent;
   border-right: 10px solid #6b4f4f;
 }
-
-/* .marker-label-pin {
-  width: 17px;
-  height: 40px;
-
-  position: absolute;
-} */
 
 /* 상세 패널 */
 #detailPanel {
@@ -187,7 +167,7 @@ body {
   bottom: 2%;
   left: 50%;
   transform: translateX(-50%);
-  background: white;
+  background: #fff;
   border-radius: 30px 30px 0 0;
   border: 1.4px solid rgba(0, 0, 0, 0.1);
   padding: 30px 40px;
@@ -199,13 +179,14 @@ body {
   width: 16px;
   height: 16px;
 }
+
 .detail-content {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
   gap: clamp(8px, 2vw, 20px);
   margin-top: 5px;
-  flex-wrap: nowrap; /* 줄바꿈 금지 */
+  flex-wrap: nowrap;
 }
 
 #storeName {
@@ -218,11 +199,11 @@ body {
 
 /* 왼쪽 정보 영역 */
 .wrap-detailPanel {
-  flex: 1 1 40%; /* 전체의 40% 차지 */
+  flex: 1 1 40%;
   display: flex;
   flex-direction: column;
   gap: 9px;
-  min-width: 200px; /* 글씨가 너무 찌그러지지 않게 최소값 */
+  min-width: 200px;
 }
 
 /* 가운데 세로선 */
@@ -236,50 +217,61 @@ body {
 .menu-name {
   font-size: 15px;
 }
+
+/* 오른쪽 메뉴 영역 */
 .image-container {
   flex: 1 1 60%;
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-start;
-  overflow: hidden; /* 혹시라도 넘치면 잘리도록 */
+  overflow: hidden;
   margin-top: 0.6rem;
 }
-
 .menu-item {
-  flex: 1 1 calc(32% - 10px); /* 한 줄에 3개 정도 들어가도록 자동 비율 */
-  max-width: 8.75rem; /* 너무 커지지 않게 제한 */
+  flex: 1 1 calc(32% - 10px);
+  max-width: 8.75rem;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
-
 .menu-item img {
-  width: 100%; /* 부모 크기에 맞게 자동 줄어듦 */
+  width: 100%;
   height: auto;
-  aspect-ratio: 4/3; /* 비율 유지 */
+  aspect-ratio: 4/3;
   object-fit: cover;
   border-radius: 0;
   margin-bottom: 15px;
 }
-
 .menu-item span {
   margin-top: 6px;
   font-size: clamp(12px, 1.5vw, 16px);
   text-align: center;
 }
+
+/* 이미지 없음 표시 */
+.no-image {
+  width: 100%;
+  aspect-ratio: 4/3;
+  display: grid;
+  place-items: center;
+  background: #f0f0f0;
+  color: #888;
+  border: 1px dashed #ccc;
+  margin-bottom: 15px;
+}
+
+/* 닫기 버튼 */
 .close-panel {
   display: flex;
   position: relative;
   width: 40px;
   border: none;
-  justify-content: center;
   margin-top: -25px;
   margin-right: -30px;
   font-size: 25px;
   font-weight: 200;
   background-color: #fff;
-  justify-content: center;
   align-items: center;
   text-align: center;
   border-radius: 5px;
@@ -294,7 +286,6 @@ body {
   font-weight: 500;
   color: #362e2e;
   margin-right: 12px;
-
   display: flex;
   align-items: center;
   justify-content: center;
@@ -306,7 +297,7 @@ body {
     flex-direction: column;
   }
   .wrap-detailPanel {
-    gap: 0px;
+    gap: 0;
   }
   .vertical-line {
     display: none;
@@ -317,7 +308,6 @@ body {
     max-width: 150px;
   }
   .menu-item img {
-    flex: 1 1 35%;
     width: 80px;
     height: 30px;
   }
@@ -332,23 +322,19 @@ body {
     margin-top: -25px;
   }
 }
-
 @media (max-width: 600px) {
   .course-bar {
     padding: 10px;
   }
-
   .course-btn,
   .course-btn.special-btn {
     flex: 1 1 100%;
     font-size: 14px;
   }
-
   #detailPanel {
     width: 60%;
     padding: 15px;
   }
-
   .menu-item img {
     width: 65px;
     height: 30px;
@@ -358,4 +344,64 @@ body {
     margin-left: 80%;
     margin-top: -10px;
   }
+}
+
+/* 상세 패널 메뉴: 이미지 위, 텍스트 아래(이미지 왼쪽에 맞춰 정렬) */
+#storeImages {
+  --menu-img-w: 110px;
+  --menu-gap: 6px;
+}
+#storeImages .menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--menu-gap);
+  max-width: var(--menu-img-w);
+}
+#storeImages .menu-image,
+#storeImages .no-image {
+  width: var(--menu-img-w);
+  aspect-ratio: 4 / 3;
+  height: auto;
+  object-fit: cover;
+  margin: 0;
+}
+#storeImages .menu-details {
+  width: var(--menu-img-w);
+  text-align: left;
+}
+#storeImages .menu-name {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+#storeImages .menu-price {
+  color: #555;
+  font-size: 14px;
+  margin: 0;
+}
+@media (max-width: 900px) {
+  #storeImages {
+    --menu-img-w: 90px;
+    --menu-gap: 5px;
+  }
+}
+@media (max-width: 600px) {
+  #storeImages {
+    --menu-img-w: 80px;
+    --menu-gap: 4px;
+  }
+}
+
+/* 상세 패널: 아이콘 오른쪽 텍스트를 아이콘 기준 세로 가운데 정렬 */
+.wrap-detailPanel p {
+  display: flex;
+  align-items: center; /* 아이콘과 텍스트 세로 중앙 정렬 */
+  gap: 8px; /* 아이콘 ↔ 텍스트 간격 */
+  line-height: 1.2;
+}
+.wrap-detailPanel .store-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
 }

@@ -178,7 +178,7 @@ body {
   border-color: #ff914d;
 }
 .btn-outline:hover {
-  background: rgba(255, 145, 77, 0.08);
+  background: rgb(241, 241, 241);
 }
 
 .course-row.open .course-actions {

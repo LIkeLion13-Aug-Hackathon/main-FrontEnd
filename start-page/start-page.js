@@ -3,22 +3,25 @@ document.addEventListener("DOMContentLoaded", () => {
   const start_button1 = document.getElementsByClassName("start-btn1");
   const start_button2 = document.getElementsByClassName("start-btn2");
 
+  // 1) AI로 먹킷 코스 짜기 → 코스 초기화 후 설문으로
   Array.from(start_button1).forEach((btn) => {
     btn.addEventListener("click", () => {
-      // '코스 선택하기' 버튼 클릭 시, 기존 코스 데이터 초기화
       localStorage.removeItem("selectedCourse");
+      localStorage.removeItem("selectedMarketName");
       window.location.href = "../preference-page/preference-page.html";
     });
   });
 
+  // 2) 전통시장 지도 탐색하러 가기 → 코스/시장 비우고, 쿼리 없이 지도 페이지로
   Array.from(start_button2).forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const marketName =
-        localStorage.getItem("selectedMarketName") || "선택된 시장";
+    const mapUrl = new URL("../map-page/map-page.html", location.href).href;
+    if (btn.tagName === "A") btn.setAttribute("href", mapUrl); // a 태그 대비
 
-      window.location.href = `../map-page/map-page.html?marketName=${encodeURIComponent(
-        marketName
-      )}`;
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      localStorage.removeItem("selectedCourse");
+      localStorage.removeItem("selectedMarketName");
+      window.location.href = mapUrl;
     });
   });
 });
