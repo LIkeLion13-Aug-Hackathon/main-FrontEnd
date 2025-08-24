@@ -353,17 +353,19 @@ async function showDetailPanel(data) {
       menuContainer.innerHTML = "<p>등록된 메뉴가 없습니다.</p>";
     } else {
       menuContainer.innerHTML = "";
-      menuList.forEach((menu) => {
+
+      // 메뉴가 4개 이상일 때는 3개까지만 출력
+      const limitedMenuList = menuList.slice(0, 3);
+
+      limitedMenuList.forEach((menu) => {
         const menuItem = document.createElement("div");
         menuItem.className = "menu-item";
 
-        // 가격이 숫자면 포맷팅, 아니면 그대로 출력
         const priceText =
           typeof menu.price === "number"
             ? `${menu.price.toLocaleString()}원`
             : menu.price || "";
 
-        // 이미지가 있으면 <img> 태그, 없으면 "이미지 없음" 문구 표시
         let imageContent = "";
         if (menu.ImageUrl && menu.ImageUrl.trim() !== "") {
           imageContent = `<img src="${menu.ImageUrl}" alt="${menu.name}" class="menu-image"/>`;

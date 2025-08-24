@@ -228,13 +228,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     await Promise.all(tasks);
     return courses;
   }
-
-  // 코스 → map-page 연결: 선택 코스 저장 + 이동
+  //예은
   function saveSelectedCourse(course) {
     try {
       localStorage.setItem("selectedCourse", JSON.stringify(course));
+
+      const marketName = pickMarketNameFromCourse(course);
+      if (marketName) {
+        localStorage.setItem("selectedMarketName", marketName);
+      } else {
+        localStorage.removeItem("selectedMarketName"); // 시장 못 찾으면 이전값 지움
+      }
     } catch (e) {
-      console.warn("[map] localStorage 저장 실패:", e);
+      console.warn("[random→map] localStorage 저장 실패:", e);
     }
   }
 
