@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../header/Header.css" />
+    <link rel="stylesheet" href="../start-page/start-page.css" />
+    <link rel="stylesheet" href="../header/Header.html" />
+    <title>Start Screen</title>
+  </head>
+  <body>
+    <!-- 빈 껍데기만 두고 JS로 채움 -->
+    <header id="header"></header>
+    <div class="start-main">
+      <img
+        class="line1"
+        src="../start-page/start_asset/start-line1.png"
+        alt="도로 왼쪽"
+      />
+      <div class="start-content">
+        <div class="start-text">
+          <h1>
+            시장 구석구석,
+            <span class="highlight-box"
+              >먹킷
+              <img
+                class="spoon-icon"
+                src="../start-page/start_asset/spoon.png" /></span
+            >이 먼저 다녀왔어요!
+          </h1>
+          <div class="text1">
+            먹킷은 전통시장의 숨은 맛집들을 AI가 코스로 추천해 주는
+            웹사이트예요.
+          </div>
+          <div class="text2">
+            <span class="bold">통인시장, 남대문시장, 망원시장</span>의 숨은
+            맛집을 AI가 맞춤 추천해 드려요.
+          </div>
+          <span class="market-list">
+            <img
+              class="market-img"
+              src="../start-page/start_asset/market1.png"
+            />
+            <img
+              class="market-img"
+              src="../start-page/start_asset/market2.png"
+            />
+            <img
+              class="market-img"
+              src="../start-page/start_asset/market3.png"
+            />
+          </span>
+          <span class="text3"
+            >전통시장 탐방, 어디서부터 시작해야 할지 모르겠다면 아래를
+            클릭하세요!</span
+          >
+        </div>
+        <div class="start-btns">
+          <button class="start-btn1">AI로 먹킷 코스 짜기</button>
+          <button class="start-btn2">전통시장 지도 탐색하러 가기</button>
+        </div>
+      </div>
+      <img
+        class="line2"
+        src="../start-page/start_asset/start-line2.png"
+        alt="도로 오른쪽"
+      />
+    </div>
+    <script type="module">
+      import { loadHeader } from "../header/Header.js";
+      loadHeader();
+    </script>
+
+    <script src="../start-page/start-page.js"></script>
+  </body>
+</html>
