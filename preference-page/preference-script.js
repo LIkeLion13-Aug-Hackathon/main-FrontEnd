@@ -202,9 +202,10 @@ document.addEventListener("DOMContentLoaded", () => {
     renderStep();
   });
 
-  // 이전
-  backBtn.addEventListener("click", () => {
-    if (current === 0) return;
+  // 이전(스텝 n → n-1로 이동)
+  backBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (current === 0) return; // 1번 스텝이면 아무 것도 안 함(숨김)
     current -= 1;
     renderStep();
   });

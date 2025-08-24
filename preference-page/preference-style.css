@@ -145,6 +145,8 @@ body {
   display: flex;
   justify-content: flex-start;
   margin: 0;
+  position: relative;
+  z-index: 1001;
 }
 .back-btn {
   padding: 12px 37px;
@@ -190,7 +192,6 @@ body.step-others .below-actions {
   margin-top: 0px;
   transform: translateY(-75px);
   position: relative;
-  z-index: 1;
 } /* Back <-> 박스 사이 간격 */
 body.step-others .random-course {
   margin-top: -120px;
