@@ -270,6 +270,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       const row = document
         .getElementById("tpl-course-row")
         .content.firstElementChild.cloneNode(true);
+      row.setAttribute("data-course-index", String(idx));
+      row.classList.add("course-row");
+
+      // 버튼들에도 인덱스 심기
+      row
+        .querySelectorAll("[data-go-map], [data-open-modal]")
+        .forEach((b) => (b.dataset.courseIndex = String(idx)));
+
       const label = row.querySelector(".course-label");
       const flow = row.querySelector(".flow");
 
@@ -288,17 +296,15 @@ document.addEventListener("DOMContentLoaded", async () => {
           s._shop?.title || s.name || "";
         step.querySelector(".desc").textContent = sig || "-";
         flow.appendChild(step);
-        if (i < shops.length - 1)
+        if (i < shops.length - 1) {
           flow.appendChild(
             document
               .getElementById("tpl-arrow")
               .content.firstElementChild.cloneNode(true)
           );
+        }
       });
 
-      row
-        .querySelectorAll("[data-go-map], [data-open-modal]")
-        .forEach((b) => (b.dataset.courseIndex = String(idx)));
       frag.appendChild(row);
     });
 
@@ -332,7 +338,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           s._shop?.title || s.name || ""
         } - ${sig || "-"}`;
         poi.querySelector(".poi-addr").textContent = s._shop?.addr || "";
-        // 시간 다시 표시
         poi.querySelector(".poi-time").textContent =
           buildTimeLineFrom(s._shop || s) || "-";
         frag.appendChild(poi);
@@ -355,7 +360,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     lastFocused = null;
   }
 
-  // 클릭 이벤트(지도 연결 포함) — 모달 내부 버튼이 2개여도 전부 잡음
+  // 클릭 이벤트(코스와 동일한 흐름)
   document.addEventListener("click", (e) => {
     // 모달 닫기
     if (e.target === modal || e.target.closest(".modal-close")) {
@@ -365,7 +370,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
 
-    // 지도 이동(카드 버튼)
+    // 지도 이동(카드 버튼) → 코스와 동일: 즉시 지도 이동
     const goMapBtn = e.target.closest("[data-go-map]");
     if (goMapBtn) {
       const idx = parseInt(goMapBtn.dataset.courseIndex || "-1", 10);
@@ -375,7 +380,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // 지도 이동(모달 버튼)
-    const goModalBtn = e.target.closest("[data-go-map-modal], .btn-go-map]");
     const goModalBtnAny = e.target.closest(
       ".modal [data-go-map-modal], .modal [data-go-map], .modal .btn-go-map"
     );
@@ -392,7 +396,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    // 모달 열기
+    // 모달 열기(특정 버튼)
     const openBtn = e.target.closest("[data-open-modal]");
     if (openBtn) {
       const idx = parseInt(openBtn.dataset.courseIndex || "-1", 10);
@@ -401,7 +405,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    // 카드 토글
+    // 카드 토글(열기/닫기) — 코스와 동일
     const row = e.target.closest(".course-row");
     if (!row) return;
     if (e.target.closest(".course-actions")) return;
