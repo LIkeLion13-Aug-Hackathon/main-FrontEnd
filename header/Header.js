@@ -14,10 +14,9 @@ export function loadHeader(path = "../header/Header.html") {
       .then((data) => {
         headerEl.innerHTML = data;
 
-        // 버튼 이벤트 등록
         const button1 = document.getElementsByClassName("btn1");
         const button2 = document.getElementsByClassName("btn2");
-        const logo = document.getElementsByClassName("logo"); // ✅ 로고 선택
+        const logo = document.getElementsByClassName("logo");
 
         Array.from(button1).forEach((btn) => {
           btn.addEventListener("click", () => {
@@ -27,11 +26,32 @@ export function loadHeader(path = "../header/Header.html") {
 
         Array.from(button2).forEach((btn) => {
           btn.addEventListener("click", () => {
-            window.location.href = "../map-page/map-page.html";
+            // 우선 localStorage에서 최근 시장 이름을 가져옴
+            let marketName =
+              localStorage.getItem("selectedMarketName") || "선택된 시장";
+
+            // selectedCourse 안에도 시장명이 있으면 우선 사용
+            const selectedCourseString = localStorage.getItem("selectedCourse");
+            if (selectedCourseString) {
+              try {
+                const selectedCourse = JSON.parse(selectedCourseString);
+                if (selectedCourse && selectedCourse.marketName) {
+                  marketName = selectedCourse.marketName;
+                  // ✅ 동시에 selectedMarketName 갱신
+                  localStorage.setItem("selectedMarketName", marketName);
+                }
+              } catch (error) {
+                console.error("localStorage 코스 데이터 파싱 실패:", error);
+              }
+            }
+
+            // map-page.html로 이동 (시장 이름 파라미터 포함)
+            window.location.href = `../map-page/map-page.html?marketName=${encodeURIComponent(
+              marketName
+            )}`;
           });
         });
 
-        // ✅ 로고 클릭 시 start-page 이동
         Array.from(logo).forEach((img) => {
           img.addEventListener("click", () => {
             window.location.href = "../start-page/start-page.html";

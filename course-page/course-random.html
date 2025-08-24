@@ -2,19 +2,17 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <title>course-page</title>
+    <title>course-random</title>
     <link rel="stylesheet" href="course-style.css" />
     <link rel="stylesheet" href="../header/Header.css" />
   </head>
   <body>
     <header id="header"></header>
     <main class="container">
-      <h1 class="title">
-        AI가 엄선한 <span class="accent">추천 코스</span> 3가지!
-      </h1>
-      <p class="subtitle">코스를 선택하여 지도에서 탐색해보세요.</p>
-      <form id="question-form" style="display: none"></form>
-      <!-- 로딩 오버레이(초기 표시: JS에서 렌더 완료 후 숨김) -->
+      <h1 class="title">AI가 각 시장마다 코스를 준비했어요!</h1>
+      <p class="subtitle">코스를 선택하여 지도에서 탐색하여 보세요.</p>
+
+      <!-- 로딩 오버레이(랜덤 페이지용) -->
       <div id="courseLoading" class="course-loading-overlay">
         <div class="course-loading-inner">
           <span class="course-loading-ico" aria-hidden="true"></span>
@@ -22,11 +20,8 @@
         </div>
       </div>
 
-      <!-- 코스 리스트 -->
-
       <div id="courseList"></div>
 
-      <!-- 모달 -->
       <div class="modal-overlay" id="courseModal">
         <div
           class="modal"
@@ -40,7 +35,7 @@
               ×
             </button>
           </div>
-          <div class="modal-body" id="modalBody"></div>
+          <div class="modal-body"></div>
           <div class="modal-footer">
             <button type="button" class="btn btn-primary" data-go-map-modal>
               이 코스 지도로 보기
@@ -49,7 +44,6 @@
         </div>
       </div>
 
-      <!-- 템플릿: 코스 카드 -->
       <template id="tpl-course-row">
         <section
           class="course-row"
@@ -57,7 +51,7 @@
           tabindex="0"
           aria-expanded="false"
         >
-          <div class="course-label">코스</div>
+          <div class="course-label"></div>
           <div class="flow"></div>
           <div class="course-actions" aria-hidden="true">
             <div class="course-actions-inner">
@@ -72,7 +66,6 @@
         </section>
       </template>
 
-      <!-- 템플릿: 스텝(가게) -->
       <template id="tpl-step">
         <div class="step">
           <div class="step-group">
@@ -85,12 +78,10 @@
         </div>
       </template>
 
-      <!-- 템플릿: 스텝 사이 화살표 -->
-      <template id="tpl-arrow">
-        <div class="arrow" aria-hidden="true">→</div>
-      </template>
+      <template id="tpl-arrow"
+        ><div class="arrow" aria-hidden="true">→</div></template
+      >
 
-      <!-- 템플릿: 모달 내 항목 -->
       <template id="tpl-modal-poi">
         <div class="poi">
           <div class="thumb"></div>
@@ -110,12 +101,20 @@
           </div>
         </div>
       </template>
+
+      <!-- 하단: 코스 새로고침 문구 + 링크 + 아이콘 -->
+      <section class="random-refresh">
+        <span class="refresh-caption">새로운 코스를 원하시나요?</span>
+        <a href="#" id="randomRefreshLink" class="refresh-link">
+          코스 새로고침 <span class="refresh-ico" aria-hidden="true"></span>
+        </a>
+      </section>
     </main>
 
     <script type="module">
       import { loadHeader } from "../header/Header.js";
       loadHeader();
     </script>
-    <script src="course-script.js"></script>
+    <script src="course-random-script.js"></script>
   </body>
 </html>

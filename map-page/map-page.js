@@ -1,3 +1,4 @@
+// map.js
 let courseData = [];
 let map;
 
@@ -5,33 +6,36 @@ let map;
 async function loadCourseData() {
   const selectedCourseString = localStorage.getItem("selectedCourse");
   if (!selectedCourseString) {
-    console.error("localStorage에 선택된 코스 데이터가 없습니다.");
+    console.error("localStorage에 선택된 코스가 없습니다.");
     return [];
   }
 
-  const selectedCourse = JSON.parse(selectedCourseString);
+  let selectedCourse;
+  try {
+    selectedCourse = JSON.parse(selectedCourseString);
+  } catch (err) {
+    console.error("코스 데이터 파싱 실패:", err);
+    return [];
+  }
+
+  if (!selectedCourse || !Array.isArray(selectedCourse.shops)) {
+    console.error("코스 데이터 형식이 올바르지 않습니다.");
+    return [];
+  }
 
   const fetchPromises = selectedCourse.shops.map(async (shop) => {
     try {
       const shopRes = await fetch(
         `http://54.180.163.161:8080/api/shops/${shop.shopId}`
       );
-      if (!shopRes.ok) {
-        throw new Error(
-          `가게 정보 조회 실패: ${shop.name} (${shopRes.status})`
-        );
-      }
+      if (!shopRes.ok) throw new Error(`가게 조회 실패: ${shop.name}`);
       const shopData = await shopRes.json();
       const shopResult = shopData.result || {};
 
-      const openTime = shopResult.openTime || "-";
-      const closeTime = shopResult.closeTime || "-";
-
-      // ✅ 수정된 부분: 메뉴 정보에 price와 description 추가
       const menus = Array.isArray(shopResult.menus)
         ? shopResult.menus.map((menu) => ({
             name: menu.name,
-            image: menu.imageUrl || menu.ImageUrl || "",
+            image: menu.imageUrl || "",
             price: menu.price || "가격 정보 없음",
             description: menu.description || "",
           }))
@@ -43,31 +47,75 @@ async function loadCourseData() {
         lat: shopResult.yPos,
         lng: shopResult.xPos,
         address: shopResult.location,
-        phone: shopResult.phone || "정보 없음", // ✅ 전화번호
-        hours: `${openTime} ~ ${closeTime}`,
+        phone: shopResult.phone || "정보 없음",
+        hours: `${shopResult.openTime || "-"} ~ ${shopResult.closeTime || "-"}`,
         image: shopResult.imageUrl || "",
-        menus: menus,
+        menus,
       };
     } catch (err) {
-      console.error(`[가게 정보 로딩 실패] ${shop.name || ""}:`, err);
-      return null;
+      console.error(`[가게 정보 로딩 실패] ${shop.name}:`, err);
+      return null; // 실패 시 null 반환
     }
   });
 
   const results = await Promise.all(fetchPromises);
-  return results.filter((shop) => shop !== null);
+  return results.filter((r) => r !== null); // null 제거
 }
 
 // === 지도 초기화 ===
 async function initMap() {
   courseData = await loadCourseData();
-  if (courseData.length === 0) return;
 
+  // ✅ URL 파라미터에서 시장 이름 확인
+  const urlParams = new URLSearchParams(window.location.search);
+  const marketName = urlParams.get("marketName") || "";
+
+  // ✅ 남대문시장일 경우 줌 레벨 다르게
+  const initialZoom = marketName === "남대문시장" ? 15 : 16.5;
+
+  // ✅ 지도 기본 세팅 (코스 없어도 항상 지도는 뜨게)
   map = new naver.maps.Map("map", {
-    center: new naver.maps.LatLng(courseData[1].lat, courseData[1].lng),
-    zoom: 17,
+    center: new naver.maps.LatLng(37.5665, 126.978), // 기본값: 서울 시청
+    zoom: initialZoom,
   });
 
+  if (courseData.length === 0) {
+    console.warn("코스 데이터가 없어 기본 지도만 표시됩니다.");
+
+    // 코스 추천 이동 UI 표시
+    const headerContainer = document.getElementById("courseBar");
+    headerContainer.innerHTML = "";
+
+    const infoDiv = document.createElement("div");
+    infoDiv.className = "no-course-info";
+    infoDiv.textContent =
+      "아직 선택된 코스가 없습니다. 코스 추천을 받아보세요!";
+
+    const goBtn = document.createElement("button");
+    goBtn.className = "course-btn special-btn";
+    goBtn.textContent = "AI로 먹킷 코스 짜기";
+    goBtn.onclick = () => {
+      window.location.href = "../preference-page/preference-page.html";
+      // 👉 실제 코스 추천 페이지 경로로 수정해
+    };
+
+    headerContainer.appendChild(infoDiv);
+    headerContainer.appendChild(goBtn);
+    return;
+  }
+
+  // ✅ 코스 있을 때만 정상 동작
+  let totalLat = 0;
+  let totalLng = 0;
+  courseData.forEach((shop) => {
+    totalLat += shop.lat;
+    totalLng += shop.lng;
+  });
+
+  const centerLat = totalLat / courseData.length;
+  const centerLng = totalLng / courseData.length;
+
+  map.setCenter(new naver.maps.LatLng(centerLat, centerLng));
   renderCourseButtons();
   renderMarkersAndPath();
 }
@@ -77,7 +125,10 @@ function renderCourseButtons() {
   const headerContainer = document.getElementById("courseBar");
   headerContainer.innerHTML = "";
 
-  const marketName = localStorage.getItem("selectedMarket") || "시장";
+  // ✅ 수정된 부분: URL 쿼리 파라미터에서 시장 이름을 가져옵니다.
+  const urlParams = new URLSearchParams(window.location.search);
+  const marketName = urlParams.get("marketName") || "선택된 시장";
+
   const specialBtn = document.createElement("button");
   specialBtn.className = "course-btn special-btn";
   specialBtn.textContent = marketName;
@@ -168,12 +219,11 @@ async function renderMarkersAndPath() {
 
     const labelText = store.name;
 
-    // 👉 기본은 오른쪽, 겹치면 top → bottom → left 순서로 fallback
     const directions = [
-      { x: 10, y: -25, className: "right" }, // 기본
-      { x: -60, y: -80, className: "top" }, // 1차 fallback
-      { x: -50, y: 20, className: "bottom" }, // 2차 fallback
-      { x: -100, y: -25, className: "left" }, // 최후 fallback
+      { x: 10, y: -45, className: "right" },
+      { x: -60, y: -80, className: "top" },
+      { x: -50, y: 20, className: "bottom" },
+      { x: -160, y: -25, className: "left" },
     ];
 
     let chosen = directions[0];
@@ -199,11 +249,11 @@ async function renderMarkersAndPath() {
       map,
       icon: {
         content: `
-        <div class="marker-label-container ${chosen.className}"
-            style="transform: translate(${chosen.x}px, ${chosen.y}px);">
-            ${labelText}
-        </div>
-      `,
+          <div class="marker-label-container ${chosen.className}"
+               style="transform: translate(${chosen.x}px, ${chosen.y}px);">
+               ${labelText}
+          </div>
+        `,
         anchor: new naver.maps.Point(0, 0),
       },
     });
@@ -220,7 +270,6 @@ async function renderMarkersAndPath() {
   if (positions.length >= 2) {
     let mergedPath = [];
 
-    // ✅ 코스 전체 순서대로 (0번 ~ 마지막 가게)
     for (let i = 0; i < positions.length - 1; i++) {
       const start = positions[i].position;
       const end = positions[i + 1].position;
@@ -241,10 +290,8 @@ async function renderMarkersAndPath() {
             ([lat, lng]) => new naver.maps.LatLng(lat, lng)
           );
 
-          // ✅ 첫 구간이면 출발점 포함
           if (i === 0) mergedPath.push(start);
 
-          // ✅ 중복 좌표 제거 + 잘못된 점 거르기
           for (let pt of segmentPath) {
             const last = mergedPath[mergedPath.length - 1];
             if (
@@ -256,7 +303,6 @@ async function renderMarkersAndPath() {
             }
           }
 
-          // ✅ 마지막 구간이면 도착점 포함
           if (i === positions.length - 2) mergedPath.push(end);
         }
       } catch (error) {
@@ -264,7 +310,6 @@ async function renderMarkersAndPath() {
       }
     }
 
-    // === Polyline 생성 ===
     if (mergedPath.length > 1) {
       new naver.maps.Polyline({
         map,
@@ -280,48 +325,82 @@ async function renderMarkersAndPath() {
   }
 }
 // === 상세 패널 ===
-function showDetailPanel(data) {
+async function showDetailPanel(data) {
   document.getElementById("storeName").textContent = data.name;
   document.getElementById("storeAddr").textContent = data.address;
   document.getElementById("storeTime").textContent = data.hours;
   document.getElementById("storePhone").textContent = data.phone;
 
   const menuContainer = document.getElementById("storeImages");
-  menuContainer.innerHTML = "";
-  if (data.menus && Array.isArray(data.menus)) {
-    data.menus.forEach((menu) => {
-      const menuItem = document.createElement("div");
-      menuItem.className = "menu-item";
+  menuContainer.innerHTML = "<p>메뉴 불러오는 중...</p>";
 
-      // ✅ 수정된 부분: 이미지, 이름, 가격, 설명을 포함하도록 HTML 구조 변경
-      menuItem.innerHTML = `
-                <img src="${menu.image}" alt="${menu.name}" class="menu-image"/>
-                <div class="menu-details">
-                    <div class="menu-name">${menu.name}</div>
-                    <div class="menu-price">${menu.price}원</div>
-                    <div class="menu-desc">${menu.description || ""}</div>
-                </div>
-            `;
-      menuContainer.appendChild(menuItem);
-    });
+  try {
+    // 메뉴 API 호출
+    const res = await fetch(
+      `http://54.180.163.161:8080/api/shops/${data.id}/menus`
+    );
+    if (!res.ok) throw new Error("메뉴 불러오기 실패");
+    const menuData = await res.json();
+
+    const menuList = menuData.result?.menuPreviewList || [];
+
+    if (menuList.length === 0) {
+      menuContainer.innerHTML = "<p>등록된 메뉴가 없습니다.</p>";
+    } else {
+      menuContainer.innerHTML = "";
+      menuList.forEach((menu) => {
+        const menuItem = document.createElement("div");
+        menuItem.className = "menu-item";
+
+        // 가격이 숫자면 포맷팅, 아니면 그대로 출력
+        const priceText =
+          typeof menu.price === "number"
+            ? `${menu.price.toLocaleString()}원`
+            : menu.price || "";
+
+        // 이미지가 있으면 <img> 태그, 없으면 "이미지 없음" 문구 표시
+        let imageContent = "";
+        if (menu.ImageUrl && menu.ImageUrl.trim() !== "") {
+          imageContent = `<img src="${menu.ImageUrl}" alt="${menu.name}" class="menu-image"/>`;
+        } else {
+          imageContent = `<div class="no-image">이미지 없음</div>`;
+        }
+
+        menuItem.innerHTML = `
+    ${imageContent}
+    <div class="menu-details">
+      <div class="menu-name">${menu.name}</div>
+      <div class="menu-price">${priceText}</div>
+    </div>
+  `;
+
+        menuContainer.appendChild(menuItem);
+      });
+    }
+  } catch (err) {
+    console.error("메뉴 로딩 오류:", err);
+    menuContainer.innerHTML = "<p>메뉴 정보를 불러오지 못했습니다.</p>";
   }
 
   document.getElementById("detailPanel").style.display = "flex";
 }
 
+// 닫기 버튼 이벤트
 document.getElementById("closePanel").onclick = function () {
   document.getElementById("detailPanel").style.display = "none";
 };
 
+// 지도 이동 함수
 function moveToLocation(lat, lng) {
   map.setCenter(new naver.maps.LatLng(lat, lng));
 }
 
-// 이 함수는 더 이상 필요하지 않습니다.
+// 이 함수는 사용되지 않으므로 제거하거나 그대로 둡니다.
 async function openStoreDetail(shopId) {
   console.error(
     "openStoreDetail 함수는 더 이상 사용되지 않습니다. showDetailPanel을 사용하세요."
   );
 }
 
+// 스크립트가 로드되면 지도 초기화를 실행합니다.
 window.onload = initMap;

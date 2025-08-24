@@ -119,8 +119,7 @@ body {
   font-size: 14px;
   font-weight: 500;
   white-space: wrap;
-  width: 120px;
-  max-width: 130px;
+  min-width: 130px;
   bottom: -20px;
 }
 
@@ -185,7 +184,7 @@ body {
   display: none;
   flex-direction: column;
   position: absolute;
-  bottom: 3%;
+  bottom: 2%;
   left: 50%;
   transform: translateX(-50%);
   background: white;
@@ -194,7 +193,7 @@ body {
   padding: 30px 40px;
   z-index: 10;
   width: 60%;
-  height: 30%;
+  height: 31%;
 }
 .store-icon {
   width: 16px;
@@ -234,6 +233,9 @@ body {
   margin: 0 15px;
 }
 
+.menu-name {
+  font-size: 15px;
+}
 .image-container {
   flex: 1 1 60%;
   display: flex;
@@ -241,13 +243,12 @@ body {
   flex-wrap: wrap;
   justify-content: flex-start;
   overflow: hidden; /* 혹시라도 넘치면 잘리도록 */
-  margin-top: 1rem;
+  margin-top: 0.6rem;
 }
 
 .menu-item {
   flex: 1 1 calc(32% - 10px); /* 한 줄에 3개 정도 들어가도록 자동 비율 */
   max-width: 8.75rem; /* 너무 커지지 않게 제한 */
-
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -259,6 +260,7 @@ body {
   aspect-ratio: 4/3; /* 비율 유지 */
   object-fit: cover;
   border-radius: 0;
+  margin-bottom: 15px;
 }
 
 .menu-item span {
@@ -285,6 +287,19 @@ body {
 .close-panel:hover {
   background-color: #f7f7f7;
 }
+
+/* 코스 안내 문구 */
+.no-course-info {
+  font-size: 20px;
+  font-weight: 500;
+  color: #362e2e;
+  margin-right: 12px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* 반응형 */
 @media (max-width: 900px) {
   .detail-content {

@@ -12,7 +12,6 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   const progressImgs = progressItems.map((pi) => pi.querySelector("img"));
   const originalSrcs = progressImgs.map((img) => img.getAttribute("src"));
-
   const CHECK_ICON_SRC = "icon/done_icon.png";
 
   const optionLabels = Array.from(form.querySelectorAll("label"));
@@ -52,6 +51,28 @@ document.addEventListener("DOMContentLoaded", () => {
     },
   ];
 
+  // 한글 → enum 매핑(백으로 보낼 값)
+  const MARKET_MAP = {
+    통인시장: "TONGIN",
+    망원시장: "MANGWON",
+    남대문시장: "NAMDAEMUN",
+  };
+  const HUMAN_MAP = {
+    "혼자 방문해요.": "SOLO",
+    "친구, 연인과 방문해요.": "COUPLE",
+    "가족과 방문해요.": "FAMILY",
+  };
+  const SPICY_MAP = {
+    "매운 음식 좋아해요.": "HOT",
+    "조금 먹을 수 있어요.": "MILD",
+    "매운 음식 못 먹어요.": "NONE",
+  };
+  const FULL_MAP = {
+    "많이 배고파요!": "LIGHT",
+    "살짝 출출하네요.": "NORMAL",
+    "음, 배는 그렇게 안 고파요.": "FULL",
+  };
+
   let current = 0;
   const answers = {};
 
@@ -62,7 +83,6 @@ document.addEventListener("DOMContentLoaded", () => {
     titleEl.textContent = s.title;
     subEl.textContent = s.sub;
 
-    // 옵션 세팅/리셋
     optionLabels.forEach((label, idx) => {
       const input = label.querySelector('input[type="radio"]');
       const icon = label.querySelector(".option-icon");
@@ -80,7 +100,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // 이전 응답 복원
     if (answers[s.name]) {
       const prev = form.querySelector(
         `input[name="${s.name}"][value="${answers[s.name]}"]`
@@ -91,13 +110,11 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // 버튼/Back
     nextBtn.disabled = !form.querySelector(`input[name="${s.name}"]:checked`);
     nextBtn.textContent =
       current === steps.length - 1 ? "Result →" : "Next Question →";
     backBtn.style.visibility = current === 0 ? "hidden" : "visible";
 
-    // 스텝별 마진 클래스(body에 부여)
     document.body.classList.toggle("step-1", current === 0);
     document.body.classList.toggle("step-others", current !== 0);
 
@@ -117,35 +134,31 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 진행바
   function updateProgressVisual() {
     progressItems.forEach((item, idx) => {
       const img = progressImgs[idx];
       item.classList.remove("active", "is-done");
 
       if (idx < current) {
-        if (img.getAttribute("src") !== CHECK_ICON_SRC) {
+        if (img.getAttribute("src") !== CHECK_ICON_SRC)
           img.setAttribute("src", CHECK_ICON_SRC);
-        }
         item.classList.add("is-done");
       } else if (idx === current) {
-        if (img.getAttribute("src") !== originalSrcs[idx]) {
+        if (img.getAttribute("src") !== originalSrcs[idx])
           img.setAttribute("src", originalSrcs[idx]);
-        }
         item.classList.add("active");
       } else {
-        if (img.getAttribute("src") !== originalSrcs[idx]) {
+        if (img.getAttribute("src") !== originalSrcs[idx])
           img.setAttribute("src", originalSrcs[idx]);
-        }
       }
     });
 
-    progressDividers.forEach((div, idx) => {
-      div.classList.toggle("done", idx < current);
-    });
+    progressDividers.forEach((div, idx) =>
+      div.classList.toggle("done", idx < current)
+    );
   }
 
-  // 라디오 변경
+  // 선택 변경
   form.addEventListener("change", (e) => {
     if (!e.target.matches('input[type="radio"]')) return;
     const s = steps[current];
@@ -154,7 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
     updateLineOptions();
   });
 
-  // Next 버튼
+  // 다음(이동)
   nextBtn.addEventListener("click", () => {
     const s = steps[current];
     const checked = form.querySelector(`input[name="${s.name}"]:checked`);
@@ -165,60 +178,40 @@ document.addEventListener("DOMContentLoaded", () => {
     answers[s.name] = checked.value;
 
     if (current === steps.length - 1) {
-      // 한글 응답을 API용 영어 Enum으로 변환하는 매핑
-      const answerMapping = {
-        통인시장: "TONGIN",
-        남대문시장: "NAMDAEMUN",
-        망원시장: "MANGWON",
-        "혼자 방문해요.": "SOLO",
-        "친구, 연인과 방문해요.": "COUPLE",
-        "가족과 방문해요.": "FAMILY",
-        "매운 음식 좋아해요.": "HOT",
-        "조금 먹을 수 있어요.": "MILD",
-        "매운 음식 못 먹어요.": "NONE",
-        "많이 배고파요!": "FULL",
-        "살짝 출출하네요.": "NORMAL",
-        "음, 배는 그렇게 안 고파요.": "LIGHT",
-      };
+      const params = new URLSearchParams({
+        market: MARKET_MAP[answers.market] ?? "TONGIN",
+        humanLevel: HUMAN_MAP[answers.companion] ?? "SOLO",
+        spicyLevel: SPICY_MAP[answers.spicy] ?? "NONE",
+        fullLevel: FULL_MAP[answers.hunger] ?? "LIGHT",
+      });
+      // 절대경로로 조립
+      const target = new URL("../course-page/course-page.html", location.href);
+      target.search = params.toString();
 
-      const finalAnswers = {};
-      for (const key in answers) {
-        if (answers.hasOwnProperty(key)) {
-          // 매핑 테이블에서 변환된 값을 찾고, 없으면 원본 값 사용 (폴백)
-          finalAnswers[key] = answerMapping[answers[key]] || answers[key];
-        }
-      }
-
-      // API 요청에 필요한 파라미터 이름으로 key 수정
-      finalAnswers.humanLevel = finalAnswers.companion;
-      delete finalAnswers.companion;
-
-      finalAnswers.spicyLevel = finalAnswers.spicy;
-      delete finalAnswers.spicy;
-
-      finalAnswers.fullLevel = finalAnswers.hunger;
-      delete finalAnswers.hunger;
-
-      // 시장 이름은 따로 저장 (지도 페이지에서 사용)
-      if (answers.market) {
-        localStorage.setItem("selectedMarket", answers.market);
-      }
-
-      const params = new URLSearchParams(finalAnswers);
-      window.location.href =
-        "../course-page/course-page.html?" + params.toString();
+      nextBtn.disabled = true;
+      location.href = target.href;
       return;
     }
     current += 1;
     renderStep();
   });
 
-  // Back 버튼
+  // 이전
   backBtn.addEventListener("click", () => {
     if (current === 0) return;
     current -= 1;
     renderStep();
   });
+
+  // 하단 ‘랜덤 코스 보기’ 링크 절대경로 보정
+  const rndLink = document.querySelector(".random-course a");
+  if (rndLink) {
+    const rndTarget = new URL(
+      "../course-page/course-random.html",
+      location.href
+    );
+    rndLink.setAttribute("href", rndTarget.href);
+  }
 
   renderStep();
 });

@@ -1,202 +1,296 @@
+// course-script.js
 document.addEventListener("DOMContentLoaded", async () => {
+  const API_BASE = window.API_BASE || "http://54.180.163.161:8080";
+
   const courseList = document.getElementById("courseList");
   const modal = document.getElementById("courseModal");
   const modalTitleEl = modal ? modal.querySelector("#modalTitle") : null;
   const modalBodyEl = modal ? modal.querySelector(".modal-body") : null;
   const modalFooterEl = modal ? modal.querySelector(".modal-footer") : null;
+  let loadingEl = document.getElementById("courseLoading");
 
   let openRow = null;
   let lastFocused = null;
   let currentCourse = null;
   let coursesCache = [];
 
+  const useTpl = (id) => {
+    const tpl = document.getElementById(id);
+    if (!tpl) throw new Error(`#${id} 템플릿을 찾을 수 없어요`);
+    return tpl.content.firstElementChild.cloneNode(true);
+  };
+
+  const params = new URLSearchParams(location.search);
+  const norm = {};
+  for (const [k, v] of params.entries())
+    norm[k.trim().toLowerCase()] = String(v).trim().toUpperCase();
+
   const ALLOWED = {
     market: ["TONGIN", "MANGWON", "NAMDAEMUN"],
-    humanLevel: ["SOLO", "COUPLE", "FAMILY", "GROUP"],
-    spicyLevel: ["NONE", "MILD", "MEDIUM", "HOT", "EXTREME"],
-    fullLevel: ["LIGHT", "NORMAL", "FULL"],
+    humanlevel: ["SOLO", "COUPLE", "FAMILY"],
+    spicylevel: ["HOT", "MILD", "NONE"],
+    fulllevel: ["LIGHT", "NORMAL", "FULL"],
+  };
+  const pickEnum = (key, fb) =>
+    ALLOWED[key]?.includes(norm[key]) ? norm[key] : fb;
+
+  const bodyData = {
+    market: pickEnum("market", "TONGIN"),
+    humanLevel: pickEnum("humanlevel", "SOLO"),
+    spicyLevel: pickEnum("spicylevel", "NONE"),
+    fullLevel: pickEnum("fulllevel", "LIGHT"),
   };
 
-  const showToast = (msg) => {
-    alert(msg);
+  const MARKET_KO = {
+    TONGIN: "통인시장",
+    MANGWON: "망원시장",
+    NAMDAEMUN: "남대문시장",
   };
 
-  // 1) URL 쿼리 파싱 + API 요청 바디 데이터 생성 함수
-  const getBodyDataFromUrl = () => {
-    const params = new URLSearchParams(window.location.search);
-    const raw = Object.fromEntries(params.entries());
-    const norm = {};
+  (function setPageTitle() {
+    const titleEl = document.querySelector(".title");
+    if (!titleEl) return;
+    const marketKo = MARKET_KO[bodyData.market] || "추천";
+    titleEl.innerHTML = `AI가 엄선한 <span class="accent">${marketKo}</span> 코스 3가지!`;
+  })(); // ✅ 추가된 부분: 페이지 로드 시 market 이름을 localStorage에 저장
 
-    // 파라미터 키 이름을 소문자로 변환
-    Object.entries(raw).forEach(([k, v]) => {
-      norm[k.trim().toLowerCase()] = String(v).trim().toUpperCase();
-    });
+  const marketCode = params.get("market");
+  if (marketCode && MARKET_KO[marketCode.toUpperCase()]) {
+    localStorage.setItem(
+      "selectedMarketName",
+      MARKET_KO[marketCode.toUpperCase()]
+    );
+  }
+  const to2 = (n) => String(n ?? 0).padStart(2, "0");
+  function parseTimeToHHmm(t) {
+    if (!t) return "";
+    if (typeof t === "object" && typeof t.hour === "number")
+      return `${to2(t.hour)}:${to2(t.minute ?? 0)}`;
+    if (typeof t === "string") {
+      const m = t.match(/(\d{1,2})\s*[:시]\s*(\d{1,2})?/);
+      if (m) return `${to2(Number(m[1]))}:${to2(Number(m[2] ?? 0))}`;
+      const clean = t.replace(/\s+/g, " ").trim();
+      if (/^\d{1,2}:\d{2}\s*[-~]\s*\d{1,2}:\d{2}$/.test(clean)) return clean;
+    }
+    return "";
+  }
+  function buildTimeLine(obj) {
+    if (!obj) return "";
+    const open = obj.openTime;
+    const close = obj.closeTime;
+    const holidays = Array.isArray(obj.holidays)
+      ? obj.holidays.filter(Boolean).join(", ")
+      : obj.holidays || "";
+    let range = "";
+    const o = parseTimeToHHmm(open),
+      c = parseTimeToHHmm(close);
+    if (o && c && !o.includes("-") && !c.includes("-")) range = `${o} - ${c}`;
+    else if (o && !c) range = o;
+    else if (!o && c) range = c;
+    else if (!o && !c) {
+      const both =
+        typeof open === "string"
+          ? open
+          : typeof close === "string"
+          ? close
+          : "";
+      const clean = (both || "").replace(/\s+/g, " ").trim();
+      if (/^\d{1,2}:\d{2}\s*[-~]\s*\d{1,2}:\d{2}$/.test(clean))
+        range = clean.replace("~", " - ");
+    } else {
+      const cand = [o, c].find((v) => v.includes("-")) || "";
+      range = cand.replace("~", " - ");
+    }
+    const holidayLine = holidays ? ` / 휴무: ${holidays}` : "";
+    return `${range}${holidayLine}`.trim();
+  }
 
-    const pickEnum = (key, fallback) => {
-      // 소문자로 통일된 키를 사용
-      const normalizedKey = key.toLowerCase();
-      const value = norm[normalizedKey];
-      return ALLOWED[key]?.includes(value) ? value : fallback;
-    };
-
-    const bodyData = {
-      market: pickEnum("market", "TONGIN"),
-      humanLevel: pickEnum("humanLevel", "SOLO"),
-      spicyLevel: pickEnum("spicyLevel", "NONE"),
-      fullLevel: pickEnum("fullLevel", "LIGHT"),
-    };
-    console.log("[bodyData 최종 요청값]:", bodyData);
-    return bodyData;
-  };
-
-  // 2) API 요청 함수
-  async function fetchCourses(bodyData) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000); // 12초로 늘림
-
+  async function httpGetJSON(url) {
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    const text = await res.text().catch(() => "");
+    let data = null;
     try {
-      const res = await fetch("http://54.180.163.161:8080/api/courses", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(bodyData),
-        signal: controller.signal,
+      data = text ? JSON.parse(text) : null;
+    } catch {}
+    if (res.status === 404 || !res.ok || data?.isSuccess === false) {
+      console.warn(
+        `[GET] ${url} ${res.status} ${res.statusText} ${data?.message || text}`
+      );
+      return null;
+    }
+    return data;
+  }
+
+  function formatShop(shop) {
+    if (!shop) return null;
+    const holidays = Array.isArray(shop.holidays)
+      ? shop.holidays.filter(Boolean).join(", ")
+      : shop.holidays || "";
+    return {
+      id: shop.shopId,
+      title: shop.name || "",
+      desc: shop.description || "",
+      addr: shop.location || "",
+      openTime: shop.openTime,
+      closeTime: shop.closeTime,
+      imageUrl: shop.imageUrl || "",
+      holidays,
+      phone: shop.phone || "",
+      category: shop.category || "",
+      xPos: shop.xPos,
+      yPos: shop.yPos,
+    };
+  }
+
+  const shopsIndex = { ready: false, byId: new Map() };
+  async function ensureShopsIndex() {
+    if (shopsIndex.ready) return;
+    const json = await httpGetJSON(`${API_BASE}/api/shops`);
+    const arr = Array.isArray(json?.result) ? json.result : [];
+    arr.forEach((raw) => {
+      const d = formatShop(raw);
+      if (d?.id != null) shopsIndex.byId.set(d.id, d);
+    });
+    shopsIndex.ready = true;
+  }
+  const shopCacheById = new Map();
+  const menuCacheByShopId = new Map();
+
+  async function getShopByIdSmart(id) {
+    if (id == null) return null;
+    await ensureShopsIndex();
+    if (shopsIndex.byId.has(id)) return shopsIndex.byId.get(id);
+    if (shopCacheById.has(id)) return shopCacheById.get(id);
+    const json = await httpGetJSON(
+      `${API_BASE}/api/shops/${encodeURIComponent(id)}`
+    );
+    const detail = formatShop(json?.result);
+    if (detail) {
+      shopsIndex.byId.set(id, detail);
+      shopCacheById.set(id, detail);
+    }
+    return detail;
+  }
+
+  async function getMenusByShopIdCached(shopId) {
+    if (shopId == null) return [];
+    if (menuCacheByShopId.has(shopId)) return menuCacheByShopId.get(shopId);
+    const json = await httpGetJSON(
+      `${API_BASE}/api/shops/${encodeURIComponent(shopId)}/menus`
+    );
+    const list = Array.isArray(json?.result?.menuPreviewList)
+      ? json.result.menuPreviewList
+      : [];
+    menuCacheByShopId.set(shopId, list);
+    return list;
+  }
+
+  async function fetchCourses() {
+    const res = await fetch(`${API_BASE}/api/courses`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "Cache-Control": "no-store",
+      },
+      body: JSON.stringify(bodyData),
+    });
+    const text = await res.text();
+    let data = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch (e) {
+      console.warn("[/api/courses JSON parse fail]", e, text);
+    }
+    if (!res.ok || data?.isSuccess === false) {
+      const msg = data?.message || `코스 추천 서버 오류 (${res.status})`;
+      throw new Error(msg);
+    }
+    return Array.isArray(data?.result?.courses) ? data.result.courses : [];
+  }
+
+  async function enrichCoursesWithShops(courses = []) {
+    await ensureShopsIndex();
+    const tasks = [];
+    (Array.isArray(courses) ? courses : []).forEach((course) => {
+      (Array.isArray(course.shops) ? course.shops : []).forEach((s) => {
+        tasks.push(
+          (async () => {
+            let detail = null;
+            if (s.shopId != null) detail = await getShopByIdSmart(s.shopId);
+            s._shop = detail || null;
+            s._menus =
+              detail?.id != null ? await getMenusByShopIdCached(detail.id) : [];
+          })()
+        );
+      });
+    });
+    await Promise.all(tasks);
+    return courses;
+  }
+
+  function renderCourses(courses) {
+    const frag = document.createDocumentFragment();
+    (Array.isArray(courses) ? courses : []).forEach((c, idx) => {
+      const rowEl = useTpl("tpl-course-row");
+      const labelEl = rowEl.querySelector(".course-label");
+      const flowEl = rowEl.querySelector(".flow");
+
+      labelEl.textContent = c.title || `코스${idx + 1}`;
+
+      const shops = Array.isArray(c.shops) ? c.shops : [];
+      shops.forEach((s, i) => {
+        const stepEl = useTpl("tpl-step");
+        const sig = (s.signatureMenu || "").trim();
+        const nameToShow = s.name || s._shop?.title || "";
+        stepEl.querySelector(".name").textContent = nameToShow || "";
+        stepEl.querySelector(".desc").textContent = sig || "-";
+        flowEl.appendChild(stepEl);
+        if (i < shops.length - 1) flowEl.appendChild(useTpl("tpl-arrow"));
       });
 
-      clearTimeout(timeoutId);
+      rowEl
+        .querySelectorAll("[data-go-map], [data-open-modal]")
+        .forEach((btn) => (btn.dataset.courseIndex = String(idx)));
+      frag.appendChild(rowEl);
+    });
 
-      const text = await res.text();
-      let data = null;
-      try {
-        data = text ? JSON.parse(text) : null;
-      } catch (e) {
-        console.error("[JSON 파싱 실패]:", e, text);
-      }
-
-      if (!res.ok) {
-        throw new Error(data?.message || `코스 추천 서버 오류 (${res.status})`);
-      }
-
-      return data?.result?.courses ?? [];
-    } catch (err) {
-      clearTimeout(timeoutId);
-
-      if (err.name === "AbortError") {
-        console.warn("[fetchCourses] 요청이 타임아웃으로 중단됨");
-        showToast("서버 응답이 지연되고 있어요. 잠시 후 다시 시도해 주세요 🙏");
-      } else {
-        console.error("[fetchCourses] 요청 실패:", err);
-        showToast(
-          "코스 추천 서버가 잠시 아파요. 잠시 후 다시 시도해 주세요 🙏"
-        );
-      }
-
-      return [
-        {
-          title: "임시 코스",
-          shops: [
-            {
-              name: "샘플 가게",
-              signatureMenu: "시그니처 메뉴",
-            },
-          ],
-        },
-      ];
-    }
-  }
-
-  // 3) 코스 렌더링
-  function renderCourses(courses) {
-    if (!courseList) return;
-    if (!Array.isArray(courses) || courses.length === 0) {
-      courseList.innerHTML = "<p>추천 코스를 불러올 수 없어요.</p>";
-      return;
-    }
-
-    courseList.innerHTML = courses
-      .map(
-        (c, idx) => `
-          <section class="course-row" role="button" tabindex="0"
-            aria-labelledby="course${idx + 1}-label" aria-expanded="false">
-            <div class="course-label" id="course${idx + 1}-label">${
-          c.title
-        }</div>
-            <div class="flow">
-              ${(c.shops || [])
-                .map(
-                  (s, i) => `
-                <div class="step">
-                  <div class="step-group">
-                    <span class="pin" aria-hidden="true"></span>
-                    <div class="txt">
-                      <div class="name">${s.name}</div>
-                      <div class="desc">${s.signatureMenu || "-"}</div>
-                    </div>
-                  </div>
-                </div>
-                ${
-                  i < (c.shops?.length || 0) - 1
-                    ? `<div class="arrow" aria-hidden="true">→</div>`
-                    : ""
-                }
-              `
-                )
-                .join("")}
-            </div>
-            <div class="course-actions" aria-hidden="true">
-              <button type="button" class="btn btn-primary" data-go-map data-course-index="${idx}">
-                이 코스 지도로 보기
-              </button>
-              <button type="button" class="btn btn-outline" data-open-modal data-course-index="${idx}">
-                코스 정보 자세히 보기
-              </button>
-            </div>
-          </section>
-        `
-      )
-      .join("");
-  }
-
-  // 4) 모달 관련
-  function ensureModalFooterButtons() {
-    if (!modalFooterEl) return;
-    const hasGo = modalFooterEl.querySelector("[data-go-map-modal]");
-    const hasClose = modalFooterEl.querySelector("[data-close-modal]");
-    if (hasGo && hasClose) return;
-
-    modalFooterEl.innerHTML = `
-          <button type="button" class="btn btn-outline" data-close-modal>닫기</button>
-          <button type="button" class="btn btn-primary" data-go-map-modal>이 코스 지도로 보기</button>
-        `;
+    courseList.innerHTML = "";
+    courseList.appendChild(frag);
+    coursesCache = Array.isArray(courses) ? courses : [];
   }
 
   function openModal(course, openerBtn) {
     if (!modal) return;
     currentCourse = course;
     if (modalTitleEl) modalTitleEl.textContent = course?.title || "코스";
-    if (modalBodyEl) {
-      modalBodyEl.innerHTML = (course?.shops || [])
-        .map(
-          (s) => `
-              <div class="poi">
-                <div class="thumb"></div>
-                <div class="poi-list">
-                  <div class="poi-row">
-                    <span class="poi-ico ico-title" aria-hidden="true"></span>
-                    <div class="poi-title">${s.name} - ${
-            s.signatureMenu || "-"
-          }</div>
-                  </div>
-                </div>
-              </div>
-            `
-        )
-        .join("");
-    }
 
-    ensureModalFooterButtons();
+    if (modalBodyEl) {
+      const frag = document.createDocumentFragment();
+      (course.shops || []).forEach((s) => {
+        const poiEl = useTpl("tpl-modal-poi");
+        const bg = s.imageUrl || s._shop?.imageUrl || "";
+        if (bg) {
+          const th = poiEl.querySelector(".thumb");
+          th.style.backgroundImage = `url('${bg}')`;
+          th.style.backgroundSize = "cover";
+          th.style.backgroundPosition = "center";
+        }
+        const sig = (s.signatureMenu || "").trim();
+        const nameToShow = s.name || s._shop?.title || "";
+        const addrToShow = s.location || s._shop?.addr || "";
+
+        poiEl.querySelector(".poi-title").textContent = `${nameToShow} - ${
+          sig || "-"
+        }`;
+        poiEl.querySelector(".poi-addr").textContent = addrToShow;
+        poiEl.querySelector(".poi-time").textContent =
+          buildTimeLine(s._shop || s) || "";
+        frag.appendChild(poiEl);
+      });
+      modalBodyEl.innerHTML = "";
+      modalBodyEl.appendChild(frag);
+    }
 
     lastFocused = openerBtn || document.activeElement;
     modal.classList.add("is-open");
@@ -210,21 +304,71 @@ document.addEventListener("DOMContentLoaded", async () => {
     modal.classList.remove("is-open");
     modal.style.display = "none";
     document.body.classList.remove("modal-open");
-    if (lastFocused && typeof lastFocused.focus === "function") {
+    if (lastFocused && typeof lastFocused.focus === "function")
       lastFocused.focus();
-    }
     lastFocused = null;
-  }
+  } // ✅ 수정된 부분: goToMap 함수를 수정합니다.
 
-  // ✅ 코스 객체 자체를 localStorage에 저장
   function goToMap(course) {
-    if (!course) return;
-    localStorage.setItem("selectedCourse", JSON.stringify(course));
-    window.location.href = "../map-page/map-page.html";
+    if (!course) return; // localStorage에서 최신 시장 이름 가져오기
+
+    const marketName =
+      localStorage.getItem("selectedMarketName") || "추천 시장";
+
+    localStorage.setItem("selectedCourse", JSON.stringify(course)); // URL에 marketName 파라미터를 추가하여 페이지 이동
+
+    window.location.href = `../map-page/map-page.html?marketName=${encodeURIComponent(
+      marketName
+    )}`;
   }
 
-  // 5) 이벤트 핸들러
+  function ensureLoading() {
+    if (loadingEl && document.body.contains(loadingEl)) return;
+    loadingEl = document.createElement("div");
+    loadingEl.id = "courseLoading";
+    loadingEl.className = "course-loading-overlay";
+    loadingEl.style.cssText =
+      "position:fixed;inset:0;background:#fff;display:grid;place-items:center;z-index:9999;";
+    const inner = document.createElement("div");
+    inner.className = "course-loading-inner";
+    inner.style.cssText =
+      "display:flex;flex-direction:column;align-items:center;gap:10px;";
+    const ico = document.createElement("span");
+    ico.className = "course-loading-ico";
+    ico.style.cssText =
+      "width:28px;height:28px;background:url('icon/refresh_icon.png') center/contain no-repeat;animation:spin .9s linear infinite;";
+    const txt = document.createElement("div");
+    txt.className = "course-loading-text";
+    txt.textContent = "로딩 중입니다...";
+    txt.style.cssText = "color:#362e2e;font-weight:700;";
+    inner.appendChild(ico);
+    inner.appendChild(txt);
+    loadingEl.appendChild(inner);
+    document.body.appendChild(loadingEl);
+    const style = document.createElement("style");
+    style.textContent = "@keyframes spin{to{transform:rotate(360deg)}}";
+    document.head.appendChild(style);
+  }
+  function showCourseLoading() {
+    ensureLoading();
+    if (loadingEl) loadingEl.style.display = "grid";
+  }
+  function hideCourseLoading() {
+    if (loadingEl) loadingEl.style.display = "none";
+  }
+
   document.addEventListener("click", (e) => {
+    if (
+      e.target === modal ||
+      e.target.closest(".modal-close") ||
+      e.target.closest("[data-close-modal]")
+    ) {
+      if (modal?.classList.contains("is-open")) {
+        closeModal();
+        return;
+      }
+    }
+
     const goMapBtn = e.target.closest("[data-go-map]");
     if (goMapBtn) {
       const idx = parseInt(goMapBtn.dataset.courseIndex || "-1", 10);
@@ -239,36 +383,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    if (
-      e.target === modal ||
-      e.target.closest(".modal-close") ||
-      e.target.closest("[data-close-modal]")
-    ) {
-      if (modal?.classList.contains("is-open")) {
-        closeModal();
-        return;
-      }
-    }
-
     const openBtn = e.target.closest("[data-open-modal]");
     if (openBtn) {
       const idx = parseInt(openBtn.dataset.courseIndex || "-1", 10);
-      let course = coursesCache[idx];
-
-      if (!course) {
-        const row = openBtn.closest(".course-row");
-        const title =
-          row?.querySelector(".course-label")?.textContent?.trim() || "코스";
-        const shops = [...(row?.querySelectorAll(".step") || [])].map((s) => ({
-          name: s.querySelector(".name")?.textContent?.trim() || "",
-          signatureMenu: s.querySelector(".desc")?.textContent?.trim() || "",
-        }));
-        course = {
-          title,
-          shops,
-        };
-      }
-      openModal(course, openBtn);
+      const course = coursesCache[idx] || null;
+      openModal(course || { title: "", shops: [] }, openBtn);
       return;
     }
 
@@ -302,10 +421,23 @@ document.addEventListener("DOMContentLoaded", async () => {
       closeModal();
   });
 
-  // 6) 실행
-  const bodyData = getBodyDataFromUrl();
-  coursesCache = await fetchCourses(bodyData);
-  renderCourses(coursesCache);
+  try {
+    showCourseLoading();
+    const courses = await fetchCourses();
+    const enriched = await enrichCoursesWithShops(courses);
+    renderCourses(enriched);
+  } catch (e) {
+    console.error("[course] run error:", e);
+    showToast(
+      "코스를 불러오는 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요 🙏"
+    );
+  } finally {
+    hideCourseLoading();
+  }
 
   if (modal) modal.style.display = "none";
+
+  function showToast(msg) {
+    alert(msg);
+  }
 });
