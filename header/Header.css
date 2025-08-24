@@ -1,0 +1,53 @@
+@media (min-width: 400px) {
+  .main-header {
+    margin-top: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 64px;
+    background-color: #fcf9f4;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+    max-width: 100%;
+  }
+  .logo {
+    width: 6.25rem;
+  }
+
+  .right-wrapper {
+    margin-left: 67%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .header-btn {
+    height: 2.4rem;
+    padding: 3px 0.9rem 7px 0.9rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+    border-radius: 0.4rem;
+    border: 1.2px solid var(--4, #6b4f4f);
+    background: #fff;
+    color: #000;
+    font-family: "Pretendard", sans-serif;
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+  }
+  .header-btn:hover {
+    background-color: #e5e4e4;
+  }
+  .btn1 {
+    margin-right: 0.8rem;
+  }
+
+  .header-icon {
+    width: 1.1rem;
+    height: 1.1rem;
+    margin-right: 0.6rem;
+    margin-top: 3px;
+  }
+}
