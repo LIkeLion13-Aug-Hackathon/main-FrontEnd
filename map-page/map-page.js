@@ -3,12 +3,14 @@ let courseData = [];
 let map;
 window.routeLine = null; // 이전 라인 지우기 용도
 
-const API_BASE = "http://54.180.163.161:8080";
+// 같은 오리진(/api) 프록시 사용
+const API_BASE = "";
+
 // 캐시
 const shopByNameCache = new Map(); // name → shop detail
 const menusByIdCache = new Map(); // shopId → menuPreviewList
 
-// 공통 GET(JSON + 타임아웃)
+// 공통 GET(JSON + 타임아웃, JSON 아닌 응답도 안전 처리)
 async function httpGetJSON(url, timeoutMs = 8000) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -18,10 +20,13 @@ async function httpGetJSON(url, timeoutMs = 8000) {
       signal: ctrl.signal,
     });
     const text = await res.text().catch(() => "");
+    const ct = res.headers.get("content-type") || "";
     let data = null;
-    try {
-      data = text ? JSON.parse(text) : null;
-    } catch {}
+    if (text && ct.includes("application/json")) {
+      try {
+        data = JSON.parse(text);
+      } catch {}
+    }
     if (!res.ok || data?.isSuccess === false) return null;
     return data;
   } catch {
@@ -56,7 +61,7 @@ async function loadCourseData() {
     // id 우선
     if (shop.shopId != null) {
       const byId = await httpGetJSON(
-        `${API_BASE}/api/shops/${encodeURIComponent(shop.shopId)}`
+        `/api/shops/${encodeURIComponent(shop.shopId)}`
       );
       if (byId?.result) return byId.result;
     }
@@ -64,7 +69,7 @@ async function loadCourseData() {
     const nameKey = (shop.name || "").trim().toLowerCase();
     if (nameKey) {
       if (shopByNameCache.has(nameKey)) return shopByNameCache.get(nameKey);
-      const url = new URL("/api/shops/shop-name", API_BASE);
+      const url = new URL("/api/shops/shop-name", location.origin);
       url.searchParams.set("name", shop.name || "");
       const byName = await httpGetJSON(url.toString());
       const detail = byName?.result || null;
@@ -78,7 +83,7 @@ async function loadCourseData() {
     selectedCourse.shops.map(async (shop) => {
       const s = await fetchShopDetail(shop);
       if (!s) {
-        // 좌표를 못 찾았어도 항목은 유지(경로에는 제외됨, 모달은 텍스트는 표시)
+        // 좌표를 못 찾았어도 항목은 유지(경로에는 제외됨, 모달 텍스트는 표시)
         return {
           id: shop.shopId ?? null,
           name: shop.name || "",
@@ -115,7 +120,7 @@ async function fetchMenusByShopIdCached(shopId) {
   if (shopId == null) return [];
   if (menusByIdCache.has(shopId)) return menusByIdCache.get(shopId);
   const data = await httpGetJSON(
-    `${API_BASE}/api/shops/${encodeURIComponent(shopId)}/menus`,
+    `/api/shops/${encodeURIComponent(shopId)}/menus`,
     8000
   );
   const list = Array.isArray(data?.result?.menuPreviewList)
@@ -128,7 +133,7 @@ async function fetchShopByNameCached(name) {
   const key = (name || "").trim().toLowerCase();
   if (!key) return null;
   if (shopByNameCache.has(key)) return shopByNameCache.get(key);
-  const url = new URL("/api/shops/shop-name", API_BASE);
+  const url = new URL("/api/shops/shop-name", location.origin);
   url.searchParams.set("name", name);
   const data = await httpGetJSON(url.toString(), 8000);
   const detail = data?.result || null;
@@ -469,7 +474,7 @@ async function renderMarkersAndPath() {
     const segEnd = routeNodes[i + 1].position;
 
     try {
-      const url = new URL(`${API_BASE}/api/directions`);
+      const url = new URL("/api/directions", location.origin);
       url.searchParams.set("alat", segStart.lat());
       url.searchParams.set("alng", segStart.lng());
       url.searchParams.set("blat", segEnd.lat());
