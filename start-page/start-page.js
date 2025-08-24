@@ -13,8 +13,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   Array.from(start_button2).forEach((btn) => {
     btn.addEventListener("click", () => {
-      const marketName =
+      let marketName =
         localStorage.getItem("selectedMarketName") || "선택된 시장";
+
+      // ✅ 선택한 시장을 localStorage에 확실히 저장
+      localStorage.setItem("selectedMarketName", marketName);
 
       window.location.href = `../map-page/map-page.html?marketName=${encodeURIComponent(
         marketName

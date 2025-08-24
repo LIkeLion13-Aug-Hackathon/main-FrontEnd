@@ -184,7 +184,10 @@ document.addEventListener("DOMContentLoaded", () => {
         spicyLevel: SPICY_MAP[answers.spicy] ?? "NONE",
         fullLevel: FULL_MAP[answers.hunger] ?? "LIGHT",
       });
-      // 절대경로로 조립
+
+      // ✅ 사용자가 선택한 시장명을 localStorage에 저장
+      localStorage.setItem("selectedMarketName", answers.market);
+
       const target = new URL("../course-page/course-page.html", location.href);
       target.search = params.toString();
 

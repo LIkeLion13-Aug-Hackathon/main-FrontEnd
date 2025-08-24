@@ -229,6 +229,58 @@ document.addEventListener("DOMContentLoaded", async () => {
     return courses;
   }
 
+  // 코스 → map-page 연결: 선택 코스 저장 + 이동
+  function saveSelectedCourse(course) {
+    try {
+      localStorage.setItem("selectedCourse", JSON.stringify(course));
+    } catch (e) {
+      console.warn("[map] localStorage 저장 실패:", e);
+    }
+  }
+
+  function goToMapWithCourse(course) {
+    if (!course) return;
+    saveSelectedCourse(course);
+
+    const url = new URL("../map-page/map-page.html", location.href); // 형제 폴더
+    const marketKo = MARKET_KO[bodyData.market];
+
+    if (marketKo) {
+      url.searchParams.set("marketName", marketKo);
+
+      // ✅ 선택된 시장명을 localStorage에도 저장 (일관성 유지)
+      localStorage.setItem("selectedMarketName", marketKo);
+    }
+
+    location.href = url.href;
+  }
+  function goToMapWithCourse(course) {
+    if (!course) return;
+    saveSelectedCourse(course);
+
+    const url = new URL("../map-page/map-page.html", location.href); // 형제 폴더
+    const marketKo = MARKET_KO[bodyData.market];
+
+    if (marketKo) {
+      url.searchParams.set("marketName", marketKo);
+
+      // ✅ 선택된 시장명을 localStorage에도 저장 (일관성 유지)
+      localStorage.setItem("selectedMarketName", marketKo);
+    }
+
+    location.href = url.href;
+  }
+  function goToMapWithCourse(course) {
+    if (!course) return;
+    saveSelectedCourse(course);
+    const url = new URL("../map-page/map-page.html", location.href); // 형제 폴더
+    const marketKo = MARKET_KO[bodyData.market];
+    if (marketKo) url.searchParams.set("marketName", marketKo);
+    location.href = url.href;
+  }
+
+  // 렌더 — 코스 배열/순서: 백 그대로, 코스명: title 그대로, signatureMenu만
+
   function renderCourses(courses) {
     const frag = document.createDocumentFragment();
     (Array.isArray(courses) ? courses : []).forEach((c, idx) => {

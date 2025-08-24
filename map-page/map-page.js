@@ -127,7 +127,12 @@ function renderCourseButtons() {
 
   // ✅ 수정된 부분: URL 쿼리 파라미터에서 시장 이름을 가져옵니다.
   const urlParams = new URLSearchParams(window.location.search);
-  const marketName = urlParams.get("marketName") || "선택된 시장";
+
+  // ✅ localStorage > URL > 기본값
+  const marketName =
+    localStorage.getItem("selectedMarketName") ||
+    urlParams.get("marketName") ||
+    "선택된 시장";
 
   const specialBtn = document.createElement("button");
   specialBtn.className = "course-btn special-btn";
