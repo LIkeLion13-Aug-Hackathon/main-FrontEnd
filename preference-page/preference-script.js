@@ -119,6 +119,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.toggle("step-others", current !== 0);
 
     updateProgressVisual();
+    ensureRandomLinkBound();
   }
 
   function updateLineOptions() {
@@ -191,6 +192,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const target = new URL("../course-page/course-page.html", location.href);
       target.search = params.toString();
 
+      // ✅ 선택한 시장을 localStorage에 확실히 저장
+      const marketName = answers.market; // (예: "통인시장", "남대문시장", "망원시장")
+      localStorage.setItem("selectedMarketName", marketName);
+
+      // 로딩 오버레이 없이 즉시 이동
+
       nextBtn.disabled = true;
       location.href = target.href;
       return;
@@ -199,22 +206,66 @@ document.addEventListener("DOMContentLoaded", () => {
     renderStep();
   });
 
-  // 이전
-  backBtn.addEventListener("click", () => {
-    if (current === 0) return;
+  // 이전(스텝 n → n-1로 이동)
+  backBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (current === 0) return; // 1번 스텝이면 아무 것도 안 함(숨김)
     current -= 1;
     renderStep();
   });
 
-  // 하단 ‘랜덤 코스 보기’ 링크 절대경로 보정
-  const rndLink = document.querySelector(".random-course a");
-  if (rndLink) {
+  // 하단 '랜덤 코스 보기' 링크 보정 + 안전 클릭 바인딩
+  function ensureRandomLinkBound() {
+    const rndLink = document.querySelector(".random-course a");
+    if (!rndLink) return;
+
+    // 항상 절대경로 갱신(스텝 전환 시에도 유지)
+
     const rndTarget = new URL(
       "../course-page/course-random.html",
       location.href
     );
     rndLink.setAttribute("href", rndTarget.href);
+
+    // 중복 바인딩 방지
+    if (rndLink.dataset.bound === "true") return;
+    rndLink.dataset.bound = "true";
+
+    // 어떤 오버레이/폼 이벤트에 가려져도 반드시 이동하게 캡처 단계에서 처리
+    rndLink.addEventListener(
+      "click",
+      (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // 일부 환경에서 다른 핸들러보다 먼저 처리하도록 캡처 사용
+        window.location.href = rndTarget.href;
+      },
+      true // capture 단계
+    );
   }
 
   renderStep();
+
+  // 문서 레벨 캡처 위임: 어떤 스텝에서도 a 클릭을 확실히 잡아준다
+  (function bindRandomLinkOnce() {
+    if (window.__bindRandomOnce) return;
+    window.__bindRandomOnce = true;
+
+    document.addEventListener(
+      "click",
+      (e) => {
+        const a = e.target.closest(".random-course a");
+        if (!a) return;
+
+        e.preventDefault();
+        e.stopPropagation(); // 혹시 모를 상위 핸들러 차단
+        const rndTarget = new URL(
+          "../course-page/course-random.html",
+          location.href
+        );
+        window.location.href = rndTarget.href;
+      },
+      true
+    );
+  })();
 });

@@ -53,6 +53,7 @@ body {
   transition: background-color 0.2s ease, box-shadow 0.2s ease,
     border-color 0.2s ease;
   cursor: pointer;
+  pointer-events: auto;
 }
 
 .course-row:focus,
@@ -178,7 +179,7 @@ body {
   border-color: #ff914d;
 }
 .btn-outline:hover {
-  background: rgba(255, 145, 77, 0.08);
+  background: rgb(241, 241, 241);
 }
 
 .course-row.open .course-actions {

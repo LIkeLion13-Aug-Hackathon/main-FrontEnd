@@ -1,6 +1,6 @@
 // course-script.js
 document.addEventListener("DOMContentLoaded", async () => {
-  const API_BASE = window.API_BASE || "http://54.180.163.161:8080";
+  const API_BASE = "https://withtime.shop"; // HTTPS API 도메인 직접 호출
 
   const courseList = document.getElementById("courseList");
   const modal = document.getElementById("courseModal");
@@ -24,7 +24,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const norm = {};
   for (const [k, v] of params.entries())
     norm[k.trim().toLowerCase()] = String(v).trim().toUpperCase();
-
   const ALLOWED = {
     market: ["TONGIN", "MANGWON", "NAMDAEMUN"],
     humanlevel: ["SOLO", "COUPLE", "FAMILY"],
@@ -33,7 +32,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
   const pickEnum = (key, fb) =>
     ALLOWED[key]?.includes(norm[key]) ? norm[key] : fb;
-
   const bodyData = {
     market: pickEnum("market", "TONGIN"),
     humanLevel: pickEnum("humanlevel", "SOLO"),
@@ -64,11 +62,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   const to2 = (n) => String(n ?? 0).padStart(2, "0");
   function parseTimeToHHmm(t) {
     if (!t) return "";
-    if (typeof t === "object" && typeof t.hour === "number")
+    if (typeof t === "object" && typeof t.hour === "number") {
       return `${to2(t.hour)}:${to2(t.minute ?? 0)}`;
+    }
     if (typeof t === "string") {
       const m = t.match(/(\d{1,2})\s*[:시]\s*(\d{1,2})?/);
-      if (m) return `${to2(Number(m[1]))}:${to2(Number(m[2] ?? 0))}`;
+      if (m) {
+        const h = to2(Number(m[1]));
+        const mm = to2(Number(m[2] ?? 0));
+        return `${h}:${mm}`;
+      }
       const clean = t.replace(/\s+/g, " ").trim();
       if (/^\d{1,2}:\d{2}\s*[-~]\s*\d{1,2}:\d{2}$/.test(clean)) return clean;
     }
@@ -81,13 +84,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     const holidays = Array.isArray(obj.holidays)
       ? obj.holidays.filter(Boolean).join(", ")
       : obj.holidays || "";
+
     let range = "";
-    const o = parseTimeToHHmm(open),
-      c = parseTimeToHHmm(close);
-    if (o && c && !o.includes("-") && !c.includes("-")) range = `${o} - ${c}`;
-    else if (o && !c) range = o;
-    else if (!o && c) range = c;
-    else if (!o && !c) {
+    const openStr = parseTimeToHHmm(open);
+    const closeStr = parseTimeToHHmm(close);
+
+    if (
+      openStr &&
+      closeStr &&
+      !openStr.includes("-") &&
+      !closeStr.includes("-")
+    ) {
+      range = `${openStr} - ${closeStr}`;
+    } else if (openStr && !openStr.includes("-") && !closeStr) {
+      range = openStr;
+    } else if (!openStr && closeStr && !closeStr.includes("-")) {
+      range = closeStr;
+    } else if (!openStr && !closeStr) {
       const both =
         typeof open === "string"
           ? open
@@ -95,15 +108,57 @@ document.addEventListener("DOMContentLoaded", async () => {
           ? close
           : "";
       const clean = (both || "").replace(/\s+/g, " ").trim();
-      if (/^\d{1,2}:\d{2}\s*[-~]\s*\d{1,2}:\d{2}$/.test(clean))
+      if (/^\d{1,2}:\d{2}\s*[-~]\s*\d{1,2}:\d{2}$/.test(clean)) {
         range = clean.replace("~", " - ");
+      } else {
+        range = "";
+      }
     } else {
-      const cand = [o, c].find((v) => v.includes("-")) || "";
+      const cand = [openStr, closeStr].find((v) => v.includes("-")) || "";
       range = cand.replace("~", " - ");
     }
+
     const holidayLine = holidays ? ` / 휴무: ${holidays}` : "";
     return `${range}${holidayLine}`.trim();
   }
+
+  // 시장명 결정(우선순위: bodyData → course.marketName → title에서 추출)
+  function resolveMarketName(course) {
+    const byBody = MARKET_KO?.[bodyData?.market];
+    if (byBody) return byBody;
+    if (course?.marketName) return String(course.marketName).trim();
+    const t = (course?.title || "").trim();
+    const m = t.match(/(통인|망원|남대문)(시장)?/);
+    return m ? `${m[1]}시장` : "";
+  }
+
+  // 지도 페이지에 필요한 최소 정보만 남기기(용량 절감)
+  function sanitizeCourseForMap(course) {
+    const shops = Array.isArray(course?.shops) ? course.shops : [];
+    const slimShops = shops.map((s) => {
+      const name = s.name || s._shop?.title || "";
+      // 좌표 보강: xPos/yPos 없으면 _shop 또는 lat/lng에서 채움
+      const x = s.xPos ?? s.lng ?? s._shop?.xPos ?? s._shop?.lng ?? null;
+      const y = s.yPos ?? s.lat ?? s._shop?.yPos ?? s._shop?.lat ?? null;
+      return {
+        shopId: s.shopId ?? s.id ?? null,
+        name,
+        xPos: x,
+        yPos: y,
+        location: s.location || s._shop?.addr || "",
+        signatureMenu: s.signatureMenu || "",
+      };
+    });
+
+    return {
+      title: course?.title || "",
+      marketName: resolveMarketName(course) || "",
+      shops: slimShops,
+      _savedAt: Date.now(),
+    };
+  }
+
+  // 공통 GET
 
   async function httpGetJSON(url) {
     const res = await fetch(url, { headers: { Accept: "application/json" } });
@@ -141,6 +196,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       yPos: shop.yPos,
     };
   }
+
+  // Shops 인덱스/캐시
 
   const shopsIndex = { ready: false, byId: new Map() };
   async function ensureShopsIndex() {
@@ -186,27 +243,35 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function fetchCourses() {
-    const res = await fetch(`${API_BASE}/api/courses`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "Cache-Control": "no-store",
-      },
-      body: JSON.stringify(bodyData),
-    });
-    const text = await res.text();
-    let data = null;
     try {
-      data = text ? JSON.parse(text) : null;
-    } catch (e) {
-      console.warn("[/api/courses JSON parse fail]", e, text);
+      const res = await fetch(`${API_BASE}/api/courses`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "Cache-Control": "no-store",
+        },
+        body: JSON.stringify(bodyData),
+      });
+      const text = await res.text();
+      let data = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch (e) {
+        console.warn("[/api/courses JSON parse fail]", e, text);
+      }
+      if (!res.ok || data?.isSuccess === false) {
+        const msg = data?.message || `코스 추천 서버 오류 (${res.status})`;
+        throw new Error(msg);
+      }
+      return Array.isArray(data?.result?.courses) ? data.result.courses : [];
+    } catch (err) {
+      console.error("courses fetch 실패:", err);
+      showToast(
+        "코스를 불러오는 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요 🙏"
+      );
+      return [];
     }
-    if (!res.ok || data?.isSuccess === false) {
-      const msg = data?.message || `코스 추천 서버 오류 (${res.status})`;
-      throw new Error(msg);
-    }
-    return Array.isArray(data?.result?.courses) ? data.result.courses : [];
   }
 
   async function enrichCoursesWithShops(courses = []) {
@@ -218,7 +283,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           (async () => {
             let detail = null;
             if (s.shopId != null) detail = await getShopByIdSmart(s.shopId);
-            s._shop = detail || null;
+            s._shop = detail;
             s._menus =
               detail?.id != null ? await getMenusByShopIdCached(detail.id) : [];
           })()
@@ -228,7 +293,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     await Promise.all(tasks);
     return courses;
   }
-  //예은
   function saveSelectedCourse(course) {
     try {
       localStorage.setItem("selectedCourse", JSON.stringify(course));
@@ -287,15 +351,69 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // 렌더 — 코스 배열/순서: 백 그대로, 코스명: title 그대로, signatureMenu만
 
+  function saveSelectedCourse(course) {
+    try {
+      localStorage.setItem("selectedCourse", JSON.stringify(course));
+
+      const marketName = pickMarketNameFromCourse(course);
+      if (marketName) {
+        localStorage.setItem("selectedMarketName", marketName);
+      } else {
+        localStorage.removeItem("selectedMarketName"); // 시장 못 찾으면 이전값 지움
+      }
+    } catch (e) {
+      console.warn("[random→map] localStorage 저장 실패:", e);
+    }
+  }
+
+  // =========================
+  // 3번 반영: 이동 함수(중복 제거 + 더블클릭 방지 + 시장명 일관 저장)
+  // =========================
+  let __goingToMap = false; // 더블클릭/중복 이동 방지
+
+  function goToMapWithCourse(course) {
+    if (!course || __goingToMap) return;
+
+    // 빈 코스 방지
+    if (!Array.isArray(course.shops) || course.shops.length === 0) {
+      alert("이 코스에 가게 정보가 없어 지도로 이동할 수 없어요.");
+      return;
+    }
+
+    __goingToMap = true;
+
+    // 시장명 결정(일관 처리)
+    const marketKo = resolveMarketName(course);
+    if (marketKo) {
+      // URL 쿼리 + 로컬 스토리지 모두 기록
+      localStorage.setItem("selectedMarketName", marketKo);
+    }
+
+    // 선택 코스 저장(슬림)
+    saveSelectedCourse(course);
+
+    // 지도 페이지로 이동
+    const url = new URL("../map-page/map-page.html", location.href); // 형제 폴더
+    if (marketKo) url.searchParams.set("marketName", marketKo);
+    location.href = url.href;
+  }
+  // =========================
+
+  // 렌더 — 코스 배열/순서: 백 그대로, 코스명: title 그대로, signatureMenu만
+
   function renderCourses(courses) {
     const frag = document.createDocumentFragment();
+
     (Array.isArray(courses) ? courses : []).forEach((c, idx) => {
       const rowEl = useTpl("tpl-course-row");
       const labelEl = rowEl.querySelector(".course-label");
       const flowEl = rowEl.querySelector(".flow");
 
-      labelEl.textContent = c.title || `코스${idx + 1}`;
+      // 코스명 그대로
+      const title = c.title || `코스${idx + 1}`;
+      labelEl.textContent = title;
 
+      // 스텝
       const shops = Array.isArray(c.shops) ? c.shops : [];
       shops.forEach((s, i) => {
         const stepEl = useTpl("tpl-step");
@@ -307,6 +425,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (i < shops.length - 1) flowEl.appendChild(useTpl("tpl-arrow"));
       });
 
+      // 버튼 인덱스 부여
       rowEl
         .querySelectorAll("[data-go-map], [data-open-modal]")
         .forEach((btn) => (btn.dataset.courseIndex = String(idx)));
@@ -318,6 +437,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     coursesCache = Array.isArray(courses) ? courses : [];
   }
 
+  // 모달
+
   function openModal(course, openerBtn) {
     if (!modal) return;
     currentCourse = course;
@@ -327,17 +448,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       const frag = document.createDocumentFragment();
       (course.shops || []).forEach((s) => {
         const poiEl = useTpl("tpl-modal-poi");
-        const bg = s.imageUrl || s._shop?.imageUrl || "";
-        if (bg) {
+        if (s.imageUrl || s._shop?.imageUrl) {
           const th = poiEl.querySelector(".thumb");
-          th.style.backgroundImage = `url('${bg}')`;
+          th.style.backgroundImage = `url('${
+            s.imageUrl || s._shop?.imageUrl
+          }')`;
           th.style.backgroundSize = "cover";
           th.style.backgroundPosition = "center";
         }
-        const sig = (s.signatureMenu || "").trim();
+        const sig = (s.signatureMenu || "").trim(); // signatureMenu만
         const nameToShow = s.name || s._shop?.title || "";
         const addrToShow = s.location || s._shop?.addr || "";
-
         poiEl.querySelector(".poi-title").textContent = `${nameToShow} - ${
           sig || "-"
         }`;
@@ -380,6 +501,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     )}`;
   }
 
+  function showToast(msg) {
+    alert(msg);
+  }
+
+  // 로딩 오버레이(없어도 생성)
+
   function ensureLoading() {
     if (loadingEl && document.body.contains(loadingEl)) return;
     loadingEl = document.createElement("div");
@@ -388,15 +515,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     loadingEl.style.cssText =
       "position:fixed;inset:0;background:#fff;display:grid;place-items:center;z-index:9999;";
     const inner = document.createElement("div");
-    inner.className = "course-loading-inner";
     inner.style.cssText =
       "display:flex;flex-direction:column;align-items:center;gap:10px;";
     const ico = document.createElement("span");
-    ico.className = "course-loading-ico";
     ico.style.cssText =
       "width:28px;height:28px;background:url('icon/refresh_icon.png') center/contain no-repeat;animation:spin .9s linear infinite;";
     const txt = document.createElement("div");
-    txt.className = "course-loading-text";
     txt.textContent = "로딩 중입니다...";
     txt.style.cssText = "color:#362e2e;font-weight:700;";
     inner.appendChild(ico);
@@ -415,31 +539,43 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (loadingEl) loadingEl.style.display = "none";
   }
 
+  // 클릭 이벤트
   document.addEventListener("click", (e) => {
-    if (
-      e.target === modal ||
-      e.target.closest(".modal-close") ||
-      e.target.closest("[data-close-modal]")
-    ) {
+    // 모달 닫기
+    if (e.target === modal || e.target.closest(".modal-close")) {
       if (modal?.classList.contains("is-open")) {
         closeModal();
         return;
       }
     }
 
+    // 지도 이동(카드 버튼)
+
     const goMapBtn = e.target.closest("[data-go-map]");
     if (goMapBtn) {
       const idx = parseInt(goMapBtn.dataset.courseIndex || "-1", 10);
       const course = coursesCache[idx];
-      if (course) goToMap(course);
-      return;
-    }
 
-    const goModalBtn = e.target.closest("[data-go-map-modal]");
-    if (goModalBtn) {
-      if (currentCourse) goToMap(currentCourse);
+      if (course) goToMapWithCourse(course);
       return;
     }
+    // 지도 이동(모달 버튼) — 모달 내부 버튼이 2개여도 전부 잡음
+    const goModalBtnAny = e.target.closest(
+      ".modal [data-go-map-modal], .modal [data-go-map], .modal .btn-go-map"
+    );
+    if (goModalBtnAny) {
+      if (currentCourse) {
+        goToMapWithCourse(currentCourse);
+      } else {
+        const title = modalTitleEl?.textContent?.trim() || "";
+        const course = (coursesCache || []).find(
+          (c) => (c.title || "").trim() === title
+        );
+        if (course) goToMapWithCourse(course);
+      }
+      return;
+    }
+    // 모달 열기
 
     const openBtn = e.target.closest("[data-open-modal]");
     if (openBtn) {
@@ -449,6 +585,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
+    // 카드 토글
     const row = e.target.closest(".course-row");
     if (!row) return;
     if (e.target.closest(".course-actions")) return;
@@ -479,6 +616,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       closeModal();
   });
 
+  // 실행 — 로딩 표시 → 백 응답 그대로 보강 → 렌더 → 로딩 숨김
+
   try {
     showCourseLoading();
     const courses = await fetchCourses();
@@ -494,8 +633,4 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   if (modal) modal.style.display = "none";
-
-  function showToast(msg) {
-    alert(msg);
-  }
 });

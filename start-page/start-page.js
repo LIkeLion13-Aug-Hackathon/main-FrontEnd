@@ -1,4 +1,5 @@
 // start-page.html JS
+
 document.addEventListener("DOMContentLoaded", () => {
   const start_button1 = document.getElementsByClassName("start-btn1");
   const start_button2 = document.getElementsByClassName("start-btn2");

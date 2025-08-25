@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", async () => {
-  const API_BASE = window.API_BASE || "http://54.180.163.161:8080";
+  const API_BASE = "https://withtime.shop"; // HTTPS API 도메인 직접 호출
   document.body.classList.add("is-random");
 
   const courseList = document.getElementById("courseList");
@@ -37,55 +37,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (loadingEl) loadingEl.style.display = "none";
   }; // 시간(24h) + 휴무
 
-  const to2 = (n) => String(n ?? 0).padStart(2, "0");
-  function parseTimeToHHmm(t) {
-    if (!t) return "";
-    if (typeof t === "object" && typeof t.hour === "number")
-      return `${to2(t.hour)}:${to2(t.minute ?? 0)}`;
-    if (typeof t === "string") {
-      const m = t.match(/(\d{1,2})\s*[:시]\s*(\d{1,2})?/);
-      if (m) return `${to2(Number(m[1]))}:${to2(Number(m[2] ?? 0))}`;
-      const clean = t.replace(/\s+/g, " ").trim();
-      if (/^\d{1,2}:\d{2}\s*[-~]\s*\d{1,2}:\d{2}$/.test(clean)) return clean;
-    }
-    return "";
-  }
-  function buildTimeLine(obj) {
-    if (!obj) return "";
-    const open = obj.openTime,
-      close = obj.closeTime;
-    const holidays = Array.isArray(obj.holidays)
-      ? obj.holidays.filter(Boolean).join(", ")
-      : obj.holidays || "";
-    let range = "";
-    const o = parseTimeToHHmm(open),
-      c = parseTimeToHHmm(close);
-    if (o && c && !o.includes("-") && !c.includes("-")) range = `${o} - ${c}`;
-    else if (o && !c) range = o;
-    else if (!o && c) range = c;
-    else if (!o && !c) {
-      const both =
-        typeof open === "string"
-          ? open
-          : typeof close === "string"
-          ? close
-          : "";
-      const clean = (both || "").replace(/\s+/g, " ").trim();
-      if (/^\d{1,2}:\d{2}\s*[-~]\s*\d{1,2}:\d{2}$/.test(clean))
-        range = clean.replace("~", " - ");
-    } else {
-      const cand = [o, c].find((v) => v.includes("-")) || "";
-      range = cand.replace("~", " - ");
-    }
-    const holidayLine = holidays ? ` / 휴무: ${holidays}` : "";
-    return `${range}${holidayLine}`.trim();
-  } // 템플릿
-
-  const useTpl = (id) => {
-    const tpl = document.getElementById(id);
-    if (!tpl) throw new Error(`#${id} 템플릿을 찾을 수 없어요`);
-    return tpl.content.firstElementChild.cloneNode(true);
-  }; // 공통 GET
+  // 공통 GET
 
   async function httpGetJSON(url) {
     const res = await fetch(url, { headers: { Accept: "application/json" } });
@@ -102,6 +54,56 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     return data;
   } // Shop 포맷
+
+  // 시간 헬퍼(분까지)
+  const to2 = (n) => String(n ?? 0).padStart(2, "0");
+  function parseTimeToHHmm(t) {
+    if (!t) return "";
+    if (typeof t === "object" && typeof t.hour === "number") {
+      return `${to2(t.hour)}:${to2(t.minute ?? 0)}`;
+    }
+    if (typeof t === "string") {
+      const m = t.match(/(\d{1,2})\s*[:시]\s*(\d{1,2})?/);
+      if (m) return `${to2(Number(m[1]))}:${to2(Number(m[2] ?? 0))}`;
+      const clean = t.replace(/\s+/g, " ").trim();
+      if (/^\d{1,2}:\d{2}\s*[-~]\s*\d{1,2}:\d{2}$/.test(clean))
+        return clean.replace("~", " - ");
+    }
+    return "";
+  }
+  function normalizeHolidays(val) {
+    if (!val) return "";
+    if (Array.isArray(val)) return val.filter(Boolean).join(", ");
+    return String(val);
+  }
+  function buildTimeLineFrom(shopLike) {
+    if (!shopLike) return "-";
+    const open = parseTimeToHHmm(shopLike.openTime);
+    const close = parseTimeToHHmm(shopLike.closeTime);
+    const holidays = normalizeHolidays(shopLike.holidays || shopLike.holiday);
+    const range =
+      open || close ? `${open}${open && close ? " - " : ""}${close}` : "";
+    const holidayLine = holidays ? ` / 휴무: ${holidays}` : "";
+    const out = `${range}${holidayLine}`.trim();
+    return out || "-";
+  }
+
+  // 제목 포맷(시장 토큰 강조 1줄 + 코스명 1줄)
+  function formatTitleTwoLines(rawTitle) {
+    const t = (rawTitle || "").trim();
+    const m = t.match(/(통인|망원|남대문)(시장)?/);
+    if (!m) return null;
+    const token = m[0];
+    const rest =
+      (t.slice(0, m.index) + t.slice(m.index + token.length))
+        .replace(/^[\s\-–—:/|·]+/, "")
+        .replace(/[\s\-–—:/|·]+$/, "")
+        .trim() || "코스";
+    const nowrap = token.includes("남대문") ? " nowrap" : "";
+    return `<span class="accent market-line${nowrap}">${token}</span><span class="course-name-line">${rest}</span>`;
+  }
+
+  // Shop 포맷
 
   function formatShop(shop) {
     if (!shop) return null;
@@ -162,7 +164,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await ensureShopsIndex();
     const key = name.trim().toLowerCase();
     if (shopsIndex.byName.has(key)) return shopsIndex.byName.get(key);
-    const url = new URL("/api/shops/shop-name", API_BASE);
+    const url = new URL(`${API_BASE}/api/shops/shop-name`);
     url.searchParams.set("name", name);
     const json = await httpGetJSON(url.toString());
     const detail = formatShop(json?.result);
@@ -205,7 +207,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   function mergeAppend(base = [], extra = []) {
     return base.concat(extra);
   }
-  async function fetchRandomCoursesMin(min = 3, maxTries = 6) {
+  async function fetchRandomCoursesMin(min = 3, maxTries = 3) {
     let result = await fetchRandomCoursesOnce();
     let tries = 0;
     while (result.length < min && tries < maxTries) {
@@ -218,62 +220,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     return result;
   } // 백의 marketType/marketName → 한글 시장명 매핑(최우선), 없으면 title에서 토큰 추출
 
-  const MARKET_KO = {
-    TONGIN: "통인시장",
-    MANGWON: "망원시장",
-    NAMDAEMUN: "남대문시장",
-  };
-
-  function pickMarketLabelFromCourse(c) {
-    // 1) 코스 객체에 시장 정보가 있으면 그걸 우선 사용
-    if (c?.marketName && typeof c.marketName === "string")
-      return c.marketName.trim();
-    if (c?.marketType && typeof c.marketType === "string")
-      return MARKET_KO[c.marketType.trim()] || c.marketType.trim(); // 2) 없으면 title에서 토큰 추출(통인/망원/남대문 + '시장' 유무)
-
-    const t = (c?.title || "").trim();
-    const m = t.match(/(통인|망원|남대문)(시장)?/);
-    if (m) return `${m[1]}시장`;
-
-    return "랜덤 코스"; // 시장명 알 수 없으면 기본값 반환
-  } // 제목을 2줄로: 1줄째(시장명, 주황), 2줄째(시장명 제거한 나머지 제목)
-
-  function formatTitleTwoLinesFromBackend(c) {
-    const title = (c?.title || "").trim();
-    const market = pickMarketLabelFromCourse(c);
-    if (market === "랜덤 코스") {
-      // 시장명 모르면 한 줄만(백 title 그대로)
-      return `<span class="course-name-line">${title || "코스"}</span>`;
-    } // 제목에서 시장명 토큰 제거(시장/비시장 표기 모두 커버)
-
-    const tokenRe = new RegExp(
-      `\\b(${market}|${market.replace("시장", "")})\\b`
-    );
-    const second =
-      title
-        .replace(tokenRe, "")
-        .replace(/^[\s\-–—:/|·]+/, "")
-        .replace(/[\s\-–—:/|·]+$/, "")
-        .trim() || "코스";
-
-    const nowrap = market === "남대문시장" ? " nowrap" : "";
-    return `<span class="accent market-line${nowrap}" data-market="${market}">${market}</span><span class="course-name-line">${second}</span>`;
-  } // 제목을 시장명(주황) 1줄 + 나머지 1줄로 만들기 (br 안 씀)
-
-  function formatTitleTwoLines(rawTitle) {
-    const t = (rawTitle || "").trim();
-    const m = t.match(/(통인|망원|남대문)(시장)?/);
-    if (!m) return null; // 시장명 토큰이 없으면 null 반환(그대로 textContent로 처리)
-    const token = m[0]; // '통인', '망원', '남대문', '통인시장' 등
-    const rest =
-      (t.slice(0, m.index) + t.slice(m.index + token.length))
-        .replace(/^[\s\-–—:/|·]+/, "")
-        .replace(/[\s\-–—:/|·]+$/, "")
-        .trim() || "코스"; // 첫 줄: 시장명(오렌지), 둘째 줄: 코스명
-
-    return `<span class="accent market-line">${token}</span><span class="course-name-line">${rest}</span>`;
-  } // 보강(상세/메뉴)
-
+  // 보강(상세/메뉴)
   async function enrichCoursesWithShops(courses = []) {
     await ensureShopsIndex();
     const tasks = [];
@@ -300,36 +247,88 @@ document.addEventListener("DOMContentLoaded", async () => {
     return courses;
   } // 렌더(백 응답 순서/제목 그대로, 시장명만 1줄째 강조)
 
+  // 지도 연결 헬퍼
+  const MARKET_KO = {
+    TONGIN: "통인시장",
+    MANGWON: "망원시장",
+    NAMDAEMUN: "남대문시장",
+  };
+  function pickMarketNameFromCourse(c) {
+    if (c?.marketName) return c.marketName.trim();
+    if (c?.marketType && MARKET_KO[c.marketType])
+      return MARKET_KO[c.marketType];
+    const t = (c?.title || "").trim();
+    const m = t.match(/(통인|망원|남대문)(시장)?/);
+    return m ? `${m[1]}시장` : "";
+  }
+  function saveSelectedCourse(course) {
+    try {
+      localStorage.setItem("selectedCourse", JSON.stringify(course));
+
+      const marketName = pickMarketNameFromCourse(course);
+      if (marketName) {
+        localStorage.setItem("selectedMarketName", marketName);
+      } else {
+        localStorage.removeItem("selectedMarketName"); // 시장 못 찾으면 이전값 지움
+      }
+    } catch (e) {
+      console.warn("[random→map] localStorage 저장 실패:", e);
+    }
+  }
+
+  function goToMapWithCourse(course) {
+    if (!course) return;
+    saveSelectedCourse(course);
+    const url = new URL("../map-page/map-page.html", location.href); // 형제 폴더
+    const marketName = pickMarketNameFromCourse(course);
+    if (marketName) url.searchParams.set("marketName", marketName);
+    location.href = url.href;
+  }
+
+  // 렌더(백 순서/제목 그대로, 시장 토큰만 1줄째 주황)
+
   function render(courses) {
     const frag = document.createDocumentFragment();
 
-    courses.forEach((c, idx) => {
-      const row = useTpl("tpl-course-row");
+    (Array.isArray(courses) ? courses : []).forEach((c, idx) => {
+      const row = document
+        .getElementById("tpl-course-row")
+        .content.firstElementChild.cloneNode(true);
+      row.setAttribute("data-course-index", String(idx));
+      row.classList.add("course-row");
+
+      // 버튼들에도 인덱스 심기
+      row
+        .querySelectorAll("[data-go-map], [data-open-modal]")
+        .forEach((b) => (b.dataset.courseIndex = String(idx)));
+
       const label = row.querySelector(".course-label");
       const flow = row.querySelector(".flow");
 
       const title = c.title || `코스${idx + 1}`;
       const html = formatTitleTwoLines(title);
-      if (html) {
-        label.innerHTML = html;
-      } else {
-        label.textContent = title; // 시장명 토큰이 없으면 그대로
-      }
+      if (html) label.innerHTML = html;
+      else label.textContent = title;
 
       const shops = Array.isArray(c.shops) ? c.shops : [];
       shops.forEach((s, i) => {
-        const step = useTpl("tpl-step");
-        const sig = (s.signatureMenu || "").trim(); // signatureMenu만 사용
+        const step = document
+          .getElementById("tpl-step")
+          .content.firstElementChild.cloneNode(true);
+        const sig = (s.signatureMenu || "").trim();
         step.querySelector(".name").textContent =
           s._shop?.title || s.name || "";
         step.querySelector(".desc").textContent = sig || "-";
         flow.appendChild(step);
-        if (i < shops.length - 1) flow.appendChild(useTpl("tpl-arrow"));
+        if (i < shops.length - 1) {
+          flow.appendChild(
+            document
+              .getElementById("tpl-arrow")
+              .content.firstElementChild.cloneNode(true)
+          );
+        }
       });
 
-      row
-        .querySelectorAll("[data-go-map], [data-open-modal]")
-        .forEach((b) => (b.dataset.courseIndex = String(idx)));
       frag.appendChild(row);
     });
 
@@ -355,7 +354,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (modalBodyEl) {
       const frag = document.createDocumentFragment();
       (course.shops || []).forEach((s) => {
-        const poi = useTpl("tpl-modal-poi");
+        const poi = document
+          .getElementById("tpl-modal-poi")
+          .content.firstElementChild.cloneNode(true);
         if (s.imageUrl || s._shop?.imageUrl) {
           const th = poi.querySelector(".thumb");
           th.style.backgroundImage = `url('${
@@ -364,13 +365,13 @@ document.addEventListener("DOMContentLoaded", async () => {
           th.style.backgroundSize = "cover";
           th.style.backgroundPosition = "center";
         }
-        const sig = (s.signatureMenu || "").trim(); // signatureMenu만 사용
+        const sig = (s.signatureMenu || "").trim();
         poi.querySelector(".poi-title").textContent = `${
           s._shop?.title || s.name || ""
         } - ${sig || "-"}`;
         poi.querySelector(".poi-addr").textContent = s._shop?.addr || "";
         poi.querySelector(".poi-time").textContent =
-          buildTimeLine(s._shop || s) || "";
+          buildTimeLineFrom(s._shop || s) || "-";
         frag.appendChild(poi);
       });
       modalBodyEl.innerHTML = "";
@@ -392,106 +393,83 @@ document.addEventListener("DOMContentLoaded", async () => {
     lastFocused = null;
   }
 
-  // ✅ 수정된 goToMap 함수
-  function goToMap(course) {
-    if (!course) {
-      console.error("goToMap: Course is null or undefined.");
+  // 클릭 이벤트(코스와 동일한 흐름)
+  document.addEventListener("click", (e) => {
+    // 모달 닫기
+    if (e.target === modal || e.target.closest(".modal-close")) {
+      if (modal?.classList.contains("is-open")) {
+        closeModal();
+        return;
+      }
+    }
+
+    // 지도 이동(카드 버튼)
+    const goMapBtn = e.target.closest("[data-go-map]");
+    if (goMapBtn) {
+      e.preventDefault();
+      const idx = parseInt(goMapBtn.dataset.courseIndex || "-1", 10);
+      const course = (randomCoursesCache || [])[idx];
+      if (course) goToMapWithCourse(course);
       return;
     }
 
-    // 코스 객체에서 시장 이름 추출
-    const marketName = pickMarketLabelFromCourse(course);
-
-    // ✅ 최근 선택한 코스와 시장 이름을 localStorage에 저장
-    localStorage.setItem("selectedCourse", JSON.stringify(course));
-    localStorage.setItem("selectedMarketName", marketName);
-
-    // URL에 시장 이름 파라미터를 추가하여 페이지 이동
-    window.location.href = `../map-page/map-page.html?marketName=${encodeURIComponent(
-      marketName
-    )}`;
-  } // 로딩 오버레이 (course-random-script에서는 이미 존재했으므로 수정 없음) // 이벤트 핸들러 (순서 최적화 및 디버깅 강화)
-
-  document.addEventListener("click", (e) => {
-    console.log("DEBUG: Document click detected.", e.target); // 모든 클릭 이벤트 감지 // 1. "이 코스 지도로 보기" 버튼 (리스트 내) 클릭 시 최우선 처리
-
-    const goMapBtn = e.target.closest("[data-go-map]");
-    if (goMapBtn) {
-      e.preventDefault(); // 기본 링크 이동 방지
-      console.log("DEBUG: Found [data-go-map] button:", goMapBtn);
-      const idx = parseInt(goMapBtn.dataset.courseIndex || "-1", 10);
-      const course = randomCoursesCache[idx];
-      console.log(
-        "DEBUG: List Map Button - Index:",
-        idx,
-        "Course from cache:",
-        course
-      );
-      if (course) {
-        goToMap(course);
-      } else {
-        console.error(
-          "DEBUG: List Map Button - Course not found in cache for index:",
-          idx,
-          "Cache status:",
-          randomCoursesCache
-        );
-      }
-      return; // 여기서 처리 완료 후 함수 종료
-    } // 2. "이 코스 지도로 보기" 버튼 (모달 내) 클릭 시 처리
-
-    const goModalBtn = e.target.closest("[data-go-map-modal]");
-    if (goModalBtn) {
-      e.preventDefault(); // 기본 링크 이동 방지
-      console.log("DEBUG: Found [data-go-map-modal] button:", goModalBtn);
-      console.log("DEBUG: Modal Map Button - Current course:", currentCourse);
+    // 지도 이동(모달 버튼)
+    const goModalBtnAny = e.target.closest(
+      ".modal [data-go-map-modal], .modal [data-go-map], .modal .btn-go-map"
+    );
+    if (goModalBtnAny) {
       if (currentCourse) {
-        goToMap(currentCourse);
+        goToMapWithCourse(currentCourse);
       } else {
-        console.error(
-          "DEBUG: Modal Map Button - currentCourse is null or undefined."
+        const title = modalTitleEl?.textContent?.trim() || "";
+        const course = (randomCoursesCache || []).find(
+          (c) => (c.title || "").trim() === title
         );
+        if (course) goToMapWithCourse(course);
       }
-      return; // 여기서 처리 완료 후 함수 종료
-    } // 3. "코스 정보 자세히 보기" 버튼 (모달 열기) 클릭 시 처리
+      return;
+    }
 
+    // 모달 열기
     const openBtn = e.target.closest("[data-open-modal]");
     if (openBtn) {
-      e.preventDefault(); // 기본 링크 이동 방지
-      console.log("DEBUG: Found [data-open-modal] button:", openBtn);
+      e.preventDefault();
       const idx = parseInt(openBtn.dataset.courseIndex || "-1", 10);
       const course = randomCoursesCache[idx] || null;
-      console.log("DEBUG: Open Modal Button - Index:", idx, "Course:", course);
-      openModal(course || { title: "새 코스", shops: [] }, openBtn); // 기본값 좀 더 명확하게
-      return; // 여기서 처리 완료 후 함수 종료
-    } // 4. 모달 닫기 로직 (클릭한 곳이 모달 외부이거나 닫기 버튼일 때)
+      openModal(course || { title: "새 코스", shops: [] }, openBtn);
+      return;
+    }
 
+    // 모달 닫기 (data-close-modal 지원)
     if (
       e.target === modal ||
       e.target.closest(".modal-close") ||
       e.target.closest("[data-close-modal]")
     ) {
       if (modal?.classList.contains("is-open")) {
-        console.log("DEBUG: Closing modal.");
         closeModal();
-        return; // 여기서 처리 완료 후 함수 종료
+        return;
       }
-    } // 5. 코스 행 클릭 (열고 닫기) - 위의 버튼들이 모두 처리되지 않았을 때만 작동
+    }
 
+    // 코스 행 클릭 (열고 닫기)
     const row = e.target.closest(".course-row");
     if (!row) {
       console.log("DEBUG: Clicked outside any course row or specific button.");
-      return; // 코스 행이 아니면 아무것도 안 함
-    } // 코스 행 내부에서 특정 액션 버튼을 클릭한 것이 아니라면 (위에서 이미 처리됨) // 이 부분은 row 자체 클릭으로 "열고 닫는" 동작만 담당합니다.
-
-    if (e.target.closest(".course-actions")) {
-      console.log(
-        "DEBUG: Clicked inside course-actions, but not on a specific handled button."
-      );
       return;
     }
 
-    console.log("DEBUG: Toggling course row open/close for row:", row);
+    if (e.target.closest(".course-actions")) {
+      console.log("DEBUG: Clicked inside course-actions, skip toggle.");
+      return;
+    }
+    if (
+      e.target.closest("[data-open-modal]") ||
+      e.target.closest("[data-go-map]")
+    ) {
+      return;
+    }
+
     if (openRow && openRow !== row) {
       openRow.classList.remove("open");
       openRow.setAttribute("aria-expanded", "false");
@@ -506,7 +484,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       .querySelector(".course-actions")
       ?.setAttribute("aria-hidden", willOpen ? "false" : "true");
     openRow = willOpen ? row : null;
-  }); // 새로고침(문구+링크)
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && modal?.classList.contains("is-open"))
+      closeModal();
+  });
+
+  // 하단 새로고침
 
   const refreshLink = document.getElementById("randomRefreshLink");
   if (refreshLink) {
@@ -516,6 +501,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         refreshLink.setAttribute("aria-disabled", "true");
         if (ico) ico.classList.add("is-rotating");
 
+        // 캐시 리셋 + 인덱스 재로딩
         menuCacheByShopId?.clear?.();
         shopCacheById?.clear?.();
         shopsIndex.ready = false;

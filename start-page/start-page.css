@@ -93,13 +93,16 @@ body {
   gap: 7px;
   margin: -7px 6px 0 8px;
   vertical-align: middle; /* 텍스트와 높이 맞춤 */
+
+  transition: transform 0.18s ease-out, box-shadow 0.2s ease;
 }
 .highlight-box:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 20px rgba(62, 62, 62, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 0px 10px rgba(120, 120, 120, 0.2);
 }
 .text1 {
-  margin-bottom: 10px;
+  margin-bottom: 6px;
+
   color: #362e2e;
   font-size: 22px;
   font-style: normal;
@@ -148,10 +151,10 @@ body {
   line-height: normal;
 }
 .start-btns {
-  margin-top: 24px;
+  margin-top: 40px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 17px;
 }
 /* 버튼 반응형 수정 */
 .start-btn1,
@@ -185,10 +188,11 @@ body {
   background-color: #fff;
 }
 .start-btn1:hover {
-  background: #c84c35;
+  background: #ff824d;
 }
 .start-btn2:hover {
-  background: #c84c35;
+  color: #ff824d;
+  border-color: #ff824d;
 }
 
 /* ===============================
