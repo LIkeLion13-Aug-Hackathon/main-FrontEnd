@@ -371,6 +371,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   // =========================
   let __goingToMap = false; // 더블클릭/중복 이동 방지
 
+  // 뒤로가기(BFCache) 복원/탭 복귀 때 가드 리셋
+  function resetGoGuard() {
+    __goingToMap = false;
+  }
+  window.addEventListener("pageshow", resetGoGuard); // BFCache 복원 포함
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") resetGoGuard();
+  });
+  window.addEventListener("popstate", resetGoGuard); // 히스토리 이동 시
+
   function goToMapWithCourse(course) {
     if (!course || __goingToMap) return;
 
