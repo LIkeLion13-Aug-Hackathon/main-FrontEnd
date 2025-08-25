@@ -297,11 +297,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       localStorage.setItem("selectedCourse", JSON.stringify(course));
 
-      const marketName = pickMarketNameFromCourse(course);
+      const marketName = resolveMarketName(course); // ✅ 여기 수정
       if (marketName) {
         localStorage.setItem("selectedMarketName", marketName);
       } else {
-        localStorage.removeItem("selectedMarketName"); // 시장 못 찾으면 이전값 지움
+        localStorage.removeItem("selectedMarketName");
       }
     } catch (e) {
       console.warn("[random→map] localStorage 저장 실패:", e);
